@@ -12,7 +12,7 @@ tests = [test1, test2, test3] where
   test2 = ("test2", evalFull (Let "a" (Cst 42) (Var "a")) initEnv == 42)
   test3 = ("test3", evalErr (Var "x") initEnv == Left (EBadVar "x"))
 
-  -- Mine
+  -- PASSED
   test4 = ("test 4", evalFull (Let "x" (Div (Cst 4) (Cst 0)) (Cst 5)) initEnv == 5)
   test5 = ("test 5", evalFull (Sum "x" (Cst 1) (Cst 0) (Add (Cst 1) (Cst 4))) initEnv == 0)
   test6 = ("test 6", evalFull (Sum "x" (Cst 1) (Cst 5) (Add (Cst 1) (Cst 4))) initEnv == 25)
@@ -24,7 +24,7 @@ tests = [test1, test2, test3] where
   test12 = ("test 12", showExp (Mul (Cst 2) (Add (Cst 3) (Cst 4))) == "2*(3+4)")
   test13 = ("test 13", evalSimple (Add (Mul (Cst 2) (Cst 3)) (Cst 4)) == 10)
   test14 = ("test 14", showExp (Add (Mul (Cst 2) (Cst 3)) (Cst 4)) == "(2*3+4)")
-  test15 = ("test 15", evalErr (Var "ans") ansEnv == Right 42)
+  test15 = ("test 15", evalErr (Var "ans") (extendEnv "ans" 42 initEnv)  == Right 42)
   test16 = ("test 16", evalErr (Div (Cst 1) (Div (Cst 1) (Cst 0))) initEnv == Left EDivZero)
   test17 = ("test 17", evalErr (Div (Cst 1) (Div (Cst 0) (Cst 1))) initEnv == Left EDivZero)
   test18 = ("test 18", evalErr (Div (Cst 0) (Cst 1)) initEnv == Right 0)
@@ -36,8 +36,26 @@ tests = [test1, test2, test3] where
   test24 = ("test 24",  evalErr (Let "a" (Pow (Cst 1) (Cst 0)) (Div (Cst 2) (Var "a"))) initEnv == Right 2)
   test25 = ("test 25",  evalErr (Let "a" (Cst 0) (Div (Cst 2) (Var "a"))) initEnv == Left EDivZero)
   test26 = ("test 26", evalErr (Let "a" (Cst 0) (Div (Cst 2) (Var "x"))) initEnv == Left (EBadVar "x"))
+  test27 = ("test 27", showExp (Pow (Div (Cst 2) (Cst 3)) (Sub (Cst 4) (Cst 5))) == "((2/3)^(4-5))")
+  test28 = ("test 28", showExp (Div (Cst 2) (Pow (Cst 3) (Sub (Cst 4) (Cst 5)))) == "(2/(3^(4-5)))")
+  test29 = ("test 29", showExp (Mul (Cst 2) (Div (Cst 3) (Cst 4))) == "(2*(3/4))")
+  test30 = ("test 30", showExp (Div (Mul (Cst 2) (Cst 3)) (Cst 4)) == "((2*3)/4)")
+  test31 = ("test 31", evalErr (If (Var "b1") (Var "b2") (Var "b3")) initEnv == Left (EBadVar "b1"))
 
+  -- FAILED
+  tes32 = ("test 32", evalSimple (Pow (Div (Cst 4) (Cst 0)) (Cst 0)) == 1) --SHOULD BE ERROR expected: <failure> DivZero
+  tes33 = ("test 33", evalSimple (Pow (Pow (Cst 2) (Cst (-1))) (Cst 0)) == 1) --SHOULD BE ERROR expected: <failure> Negative exponent
+  tes34 = ("test 34", evalFull (Pow (Div (Cst 4) (Cst 0)) (Cst 0)) initEnv == 1) --SHOULD BE ERROR expected: <failure> DivZero
+  tes35 = ("test 35", evalFull (Pow (Pow (Cst 2) (Cst (-1))) (Cst 0)) initEnv == 1) --SHOULD BE ERROR expected: <failure> Negative exponent
+  -- TIMEOUTS IN SUM (evalFull tests with [x := 5, y := 6])
+    -- Sum "x" (Cst 1) (Var "x") (Let "x" (Add (Var "x") (Cst 1)) (Var "x"))
+    -- Sum "x" (Cst 1) (Var "x") (Sum "x" (Var "x") (Cst 10) (Var "x"))
+    -- Sum "x" (Var "b1") (Var "b2") (Var "b3")
 
+  -- TIMEOUTS IN SUM (evalErr tests with [x := 5, y := 6])
+    -- Sum "x" (Cst 1) (Var "x") (Let "x" (Add (Var "x") (Cst 1)) (Var "x"))
+    -- Sum "x" (Cst 1) (Var "x") (Sum "x" (Var "x") (Cst 10) (Var "x"))
+    -- Sum "x" (Var "b1") (Var "b2") (Var "b3")   
 
 
 main :: IO ()
