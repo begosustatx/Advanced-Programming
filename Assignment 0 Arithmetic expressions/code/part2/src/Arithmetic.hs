@@ -73,7 +73,7 @@ evalErr e env =
       case e of
         Cst x -> Right x
         If t y n -> 
-               let t1 = (evalErr t env) in
+               let t1 = evalErr t env in
                if isLeft t1 then t1
                else if fromRight 0 t1 /= 0 then evalErr y env  
                else evalErr n env
