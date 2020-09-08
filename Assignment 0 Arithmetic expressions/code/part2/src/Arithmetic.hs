@@ -38,23 +38,15 @@ evalSimple e =
        Add x y -> evalSimple x + evalSimple y
        Sub x y -> evalSimple x - evalSimple y
        Mul x y -> evalSimple x * evalSimple y
-       Div x y -> 
-                  let x1 = evalSimple x
-                      y1 = evalSimple y in
-                  if y1 == 0 then error "divide by zero" 
-                  else x1 `div` y1
-       Pow x y -> 
-                  let x1 = evalSimple x
-                      y1 = evalSimple y in
-                  if y1 < 0 then error "Negative exponent" 
-                  else x1 ^ y1
+       Div x y -> evalSimple x `div` evalSimple y
+       Pow x y -> seq (evalSimple x) (evalSimple x ^ evalSimple y)
        _ -> error "Not a \"simple\" operator expression"
 
 extendEnv :: VName -> Integer -> Env -> Env
 extendEnv v n r = \x -> 
                   if v == x then Just n 
                   else r x
--- TO DO Exc 2
+
 evalFull :: Exp -> Env -> Integer
 evalFull x env = 
       case x of
@@ -68,16 +60,14 @@ evalFull x env =
                else fromMaybe 0 value -- https://stackoverflow.com/questions/46363709/haskell-maybe-int-to-int?rq=1
         Let v a b -> evalFull b (extendEnv v (evalFull a env) env)
         Sum v f t b ->
-               let env = extendEnv v (evalFull f env) env  in
+               let e = extendEnv v (evalFull f env) env  in
                if evalFull f env > evalFull t env then 0
-               else evalFull (Sum v (Cst (evalFull f env + 1)) t b) (extendEnv v (evalFull f env + 1) env) + evalFull b env
+               else evalFull (Sum v (Add f (Cst 1)) t b) env + evalFull b e
         Add x y -> evalFull x env + evalFull y env
         Sub x y -> evalFull x env - evalFull y env
         Mul x y -> evalFull x env * evalFull y env
         Div x y -> evalFull x env `div` evalFull y env
-        Pow x y -> evalFull x env ^ evalFull y env
-        --_ -> error "Upssss something went wrong :P"
-
+        Pow x y -> seq (evalFull x env) (evalFull x env ^ evalFull y env)
 
 -- https://wiki.haskell.org/Handling_errors_in_Haskell
 evalErr :: Exp -> Env -> Either ArithError Integer
@@ -98,9 +88,13 @@ evalErr e env =
                if isLeft x1 then x1
                else evalErr b (extendEnv v (fromRight 0 x1) env)
         Sum v f t b ->
-               let env = extendEnv v (fromRight 0 (evalErr f env)) env  in
-               if fromRight 0 (evalErr f env) > fromRight 0 (evalErr t env) then Right 0
-               else Right (fromRight 0 (evalErr (Sum v (Cst (fromRight 0 (evalErr f env) + 1)) t b) (extendEnv v (fromRight 0 (evalErr f env) + 1) env)) + fromRight 0 (evalErr b env))
+               let e = extendEnv v (fromRight 0 (evalErr f env)) env  
+                   f1 = evalErr f env
+                   t1 = evalErr t env in
+               if isLeft f1 then f1        
+               else if isLeft t1 then t1
+               else if fromRight 0 f1 > fromRight 0 t1 then Right 0
+               else Right (fromRight 0 (evalErr (Sum v (Add f (Cst 1)) t b) env) + fromRight 0 (evalErr b e))
         Add x y ->
                let x1 = evalErr x env
                    y1 = evalErr y env in
