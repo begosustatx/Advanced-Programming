@@ -17,8 +17,8 @@ module Arithmetic
 where
 
 import Definitions
-import Data.Maybe -- for fromMaybe
-import Data.Either -- for fromLeft, fromRight
+import Data.Maybe (fromMaybe, isNothing)
+import Data.Either (fromRight, isLeft)
 
 showExp :: Exp -> String
 showExp (Cst x) = if x<0 then "(" ++ show x ++ ")"
@@ -31,7 +31,6 @@ showExp (Pow x y) = "(" ++ showExp x ++ "^" ++ showExp y ++ ")"
 showExp _ = error "Not a \"simple\" operator expression"
 
 evalSimple :: Exp -> Integer
--- https://www.futurelearn.com/courses/functional-programming-haskell/0/steps/27226
 evalSimple e =
     case e of
        Cst x -> x
@@ -57,7 +56,7 @@ evalFull x env =
         Var v -> 
                let value = env v in
                if isNothing value then error ("Error variable " ++ show v ++ " unbounded")
-               else fromMaybe 0 value -- https://stackoverflow.com/questions/46363709/haskell-maybe-int-to-int?rq=1
+               else fromMaybe 0 value
         Let v a b -> evalFull b (extendEnv v (evalFull a env) env)
         Sum v f t b ->
                let e = extendEnv v (evalFull f env) env  in
@@ -69,7 +68,6 @@ evalFull x env =
         Div x y -> evalFull x env `div` evalFull y env
         Pow x y -> seq (evalFull x env) (evalFull x env ^ evalFull y env)
 
--- https://wiki.haskell.org/Handling_errors_in_Haskell
 evalErr :: Exp -> Env -> Either ArithError Integer
 evalErr e env =
       case e of

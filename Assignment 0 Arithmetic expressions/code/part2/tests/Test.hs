@@ -33,8 +33,8 @@ tests = [test1, test2, test3] where
   test21 = ("test 21", evalErr (Pow (Cst 3) (Cst 1)) initEnv == Right 3)
   test22 = ("test 22", evalErr (Pow (Cst 3) (Cst (-1))) initEnv == Left ENegPower)
   test23 = ("test 23", evalErr (Let "a" (Pow (Cst 1) (Cst (-1))) (Div (Cst 2) (Var "a"))) initEnv == Left ENegPower)
-  test24 = ("test 24",  evalErr (Let "a" (Pow (Cst 1) (Cst 0)) (Div (Cst 2) (Var "a"))) initEnv == Right 2)
-  test25 = ("test 25",  evalErr (Let "a" (Cst 0) (Div (Cst 2) (Var "a"))) initEnv == Left EDivZero)
+  test24 = ("test 24", evalErr (Let "a" (Pow (Cst 1) (Cst 0)) (Div (Cst 2) (Var "a"))) initEnv == Right 2)
+  test25 = ("test 25", evalErr (Let "a" (Cst 0) (Div (Cst 2) (Var "a"))) initEnv == Left EDivZero)
   test26 = ("test 26", evalErr (Let "a" (Cst 0) (Div (Cst 2) (Var "x"))) initEnv == Left (EBadVar "x"))
   test27 = ("test 27", showExp (Pow (Div (Cst 2) (Cst 3)) (Sub (Cst 4) (Cst 5))) == "((2/3)^(4-5))")
   test28 = ("test 28", showExp (Div (Cst 2) (Pow (Cst 3) (Sub (Cst 4) (Cst 5)))) == "(2/(3^(4-5)))")
@@ -47,11 +47,12 @@ tests = [test1, test2, test3] where
   test35 = ("test 35", evalErr (Sum "x" (Cst 1) (Var "x") (Sum "x" (Var "x") (Cst 10) (Var "x"))) (extendEnv "y" 6 (extendEnv "x" 5 initEnv)) == Right 255)
   test36 = ("test 36", evalErr (Sum "x" (Var "b1") (Var "b2") (Var "b3")) (extendEnv "y" 6 (extendEnv "x" 5 initEnv)) == Left (EBadVar "b1"))
   
-  --test32 = ("test 32", evalSimple (Pow (Div (Cst 4) (Cst 0)) (Cst 0)) == 1) --SHOULD BE ERROR expected: <failure> DivZero
-  --test33 = ("test 33", evalSimple (Pow (Pow (Cst 2) (Cst (-1))) (Cst 0)) == 1) --SHOULD BE ERROR expected: <failure> Negative exponent
-  --test34 = ("test 34", evalFull (Pow (Div (Cst 4) (Cst 0)) (Cst 0)) initEnv == 1) --SHOULD BE ERROR expected: <failure> DivZero
-  --test35 = ("test 35", evalFull (Pow (Pow (Cst 2) (Cst (-1))) (Cst 0)) initEnv == 1) --SHOULD BE ERROR expected: <failure> Negative exponent
-  --test36 = ("test 36", evalFull (Sum "x" (Var "b1") (Var "b2") (Var "b3")) (extendEnv "y" 6 (extendEnv "x" 5 initEnv)) == 1) -- SHOULD BE ERROR expected: <failure> Var bound
+  -- No proper testing just run in console
+  --test37 = ("test 37", evalSimple (Pow (Div (Cst 4) (Cst 0)) (Cst 0)) /= 1) --SHOULD BE ERROR expected: Exception: divide by zero
+  --test38 = ("test 38", evalSimple (Pow (Pow (Cst 2) (Cst (-1))) (Cst 0)) /= 1) --SHOULD BE ERROR expected: Exception: Negative exponent
+  --test39 = ("test 39", evalFull (Pow (Div (Cst 4) (Cst 0)) (Cst 0)) initEnv /= 1) --SHOULD BE ERROR expected: Exception: divide by zero
+  --test40 = ("test 40", evalFull (Pow (Pow (Cst 2) (Cst (-1))) (Cst 0)) initEnv /= 1) --SHOULD BE ERROR expected: Exception: Negative exponent
+  --test41 = ("test 41", evalFull (Sum "x" (Var "b1") (Var "b2") (Var "b3")) (extendEnv "y" 6 (extendEnv "x" 5 initEnv)) /= 1) -- SHOULD BE ERROR expected: Exception: Error variable "b1" unbounded
 
 main :: IO ()
 main =
