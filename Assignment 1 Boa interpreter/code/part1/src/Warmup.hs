@@ -12,9 +12,11 @@ newtype RWSP a = RWSP {runRWSP :: ReadData -> StateData ->
                                     (a, WriteData, StateData)}
 
 -- complete the definitions
-instance Monad RWSP where
-  return a = undefined
-  m >>= f = undefined
+instance Monad RWSP where  -- MY CODE
+  return a = RWSP $ \ _ s-> (a, mempty, s)
+  m >>= f = RWSP $ \ r s-> let (a,w,s') = runRWSP m r s
+                               (b,w',s'') = runRWSP (f a) r s'
+                            in (b, w<>w',s'')
 
 -- No need to touch these
 instance Functor RWSP where
@@ -28,19 +30,19 @@ askP = RWSP (\r s -> (r, mempty, s))  -- freebie
 
 -- runs computation with new read data
 withP :: ReadData -> RWSP a -> RWSP a
-withP r' m = undefined
+withP r' m = RWSP (\_ -> runRWSP m r') -- MY CODE
 
 -- adds some write data to accumulator
 tellP :: WriteData -> RWSP ()
-tellP w = undefined
+tellP w = RWSP (\_ _ -> ((), w, 0)) -- MY CODE
 
 -- returns current state data
 getP :: RWSP StateData
-getP = undefined
+getP = RWSP (\_ s -> (0,mempty,s)) -- MY CODE
 
 -- overwrites the state data
 putP :: StateData -> RWSP ()
-putP s' = undefined
+putP s' = RWSP (\_ _ -> ((), mempty, s')) -- MY CODE
 
 -- sample computation using all features
 type Answer = String
@@ -67,9 +69,11 @@ newtype RWSE a = RWSE {runRWSE :: ReadData -> StateData ->
                                     Either ErrorData (a, WriteData, StateData)}
 
 -- Hint: here you may want to exploit that "Either ErrorData" is itself a monad
-instance Monad RWSE where
-  return a = undefined
-  m >>= f = undefined
+instance Monad RWSE where  -- MY CODE
+  return a = RWSE (\_ s -> Right (a, mempty, s))
+  m >>= f = undefined --runRWSE (\_ s -> case runRWSE m of
+                             --Left e -> Left e
+                             --Right(a, w, s') -> runRWSE (f a) s')
 
 instance Functor RWSE where
   fmap = liftM
