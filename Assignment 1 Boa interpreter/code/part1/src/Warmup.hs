@@ -12,7 +12,7 @@ newtype RWSP a = RWSP {runRWSP :: ReadData -> StateData ->
                                     (a, WriteData, StateData)}
 
 -- complete the definitions
-instance Monad RWSP where  -- MY CODE
+instance Monad RWSP where
   return a = RWSP $ \ _ s-> (a, mempty, s)
   m >>= f = RWSP $ \ r s-> let (a,w,s') = runRWSP m r s
                                (b,w',s'') = runRWSP (f a) r s'
@@ -30,19 +30,19 @@ askP = RWSP (\r s -> (r, mempty, s))  -- freebie
 
 -- runs computation with new read data
 withP :: ReadData -> RWSP a -> RWSP a
-withP r' m = RWSP (\_ -> runRWSP m r') -- MY CODE
+withP r' m = RWSP (\_ s -> runRWSP m r' s)
 
 -- adds some write data to accumulator
 tellP :: WriteData -> RWSP ()
-tellP w = RWSP (\_ _ -> ((), w, 0)) -- MY CODE
+tellP w = RWSP (\_ s -> ((), w, s))
 
 -- returns current state data
 getP :: RWSP StateData
-getP = RWSP (\_ s -> (0,mempty,s)) -- MY CODE
+getP = RWSP (\_ s -> (s,mempty,s))
 
 -- overwrites the state data
 putP :: StateData -> RWSP ()
-putP s' = RWSP (\_ _ -> ((), mempty, s')) -- MY CODE
+putP s' = RWSP (\_ _ -> ((), mempty, s'))
 
 -- sample computation using all features
 type Answer = String
@@ -69,34 +69,40 @@ newtype RWSE a = RWSE {runRWSE :: ReadData -> StateData ->
                                     Either ErrorData (a, WriteData, StateData)}
 
 -- Hint: here you may want to exploit that "Either ErrorData" is itself a monad
-instance Monad RWSE where  -- MY CODE
+instance Monad RWSE where
   return a = RWSE (\_ s -> Right (a, mempty, s))
-  m >>= f = undefined --runRWSE (\_ s -> case runRWSE m of
-                             --Left e -> Left e
-                             --Right(a, w, s') -> runRWSE (f a) s')
-
+  m >>= f = RWSE (\r s -> do (a,w,s') <- runRWSE m r s
+                             (b,w',s'') <- runRWSE (f a) r s'
+                             return (b,w<>w',s''))
+  {-
+  m >>= f = RWSE (\r s -> case runRWSE m r s of
+                            Left e -> Left e
+                            Right(a, w, s') -> case runRWSE (f a) r s' of
+                                                  Left e' -> Left e'
+                                                  Right(b, w', s'') -> Right (b, w<>w',s''))
+  -}
 instance Functor RWSE where
   fmap = liftM
 instance Applicative RWSE where
   pure = return; (<*>) = ap
 
 askE :: RWSE ReadData
-askE = undefined
+askE = RWSE (\r s -> Right (r, mempty, s))
 
 withE :: ReadData -> RWSE a -> RWSE a
-withE r' m = undefined
+withE r' m = RWSE (\_ s -> runRWSE m r' s)
 
 tellE :: WriteData -> RWSE ()
-tellE w = undefined
+tellE w = RWSE (\_ s -> Right ((), w, s))
 
 getE :: RWSE StateData
-getE = undefined
+getE = RWSE (\_ s -> Right (s,mempty,s)) 
 
 putE :: StateData -> RWSE ()
-putE s' = undefined
+putE s' = RWSE (\_ _ -> Right ((), mempty, s'))
 
 throwE :: ErrorData -> RWSE a
-throwE e = undefined
+throwE e = RWSE (\_ _ -> Left e)
 
 sampleE :: RWSE Answer
 sampleE =
