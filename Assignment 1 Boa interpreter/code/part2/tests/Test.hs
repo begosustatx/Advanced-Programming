@@ -295,6 +295,4 @@ execTests = testGroup "exec Tests"
  [testCase "exec []" $
     runComp (exec []) [] @?= (Right (),[]),
   testCase "exec [print(x)]" $
-    runComp (exec [SDef "x" (Call "print" [(Var "x")])]) [("x",IntVal 4)] @?= (Right (),["4"])]      
-
---executeTests = testGroup "execute Tests"
+    runComp (exec [SDef "x" (Call "print" [(Var "x")])]) [("x",IntVal 4)] @?= (Right (),["4"])]

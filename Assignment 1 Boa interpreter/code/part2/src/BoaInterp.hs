@@ -153,7 +153,6 @@ eval (List (x:xs)) = do res1 <- eval x
                         case res2 of
                           (ListVal x) -> return (ListVal (res1:x))
                           _ -> abort (EBadArg "The argument must be a List")
--- Needs to be fixed 
 eval (Compr e []) = eval e
 eval (Compr e ((CCFor var exp):xs)) = do result <- eval exp
                                          case result of
