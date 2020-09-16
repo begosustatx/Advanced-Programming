@@ -250,17 +250,17 @@ evalTests = testGroup "eval Tests"
     runComp (eval (Not (Var "x"))) [] @?= (Left (EBadVar "x"),[]),
   testCase "eval not 0" $
     runComp (eval (Not (Const (IntVal 0)))) [] @?= (Right TrueVal,[]),
-  testCase "exec not 45" $
+  testCase "eval not 45" $
     runComp (eval (Not (Const (IntVal 45)))) [] @?= (Right FalseVal,[]),
-  testCase "exec not empty" $
+  testCase "eval not empty" $
     runComp (eval (Not (Const (StringVal "")))) [] @?= (Right TrueVal,[]),
-  testCase "exec not text" $
+  testCase "eval not text" $
     runComp (eval (Not (Const (StringVal "text")))) [] @?= (Right FalseVal,[]),
-  testCase "exec not NoneVal" $
+  testCase "eval not NoneVal" $
     runComp (eval (Not (Const NoneVal))) [] @?= (Right TrueVal,[]),
-  testCase "exec Not x Trueval in env" $
-    runComp (eval (Not (Var "x"))) [("x",TrueVal)] @?= (Right TrueVal,[]) ,
-  testCase "exec Not x Trueval in env" $
+  testCase "eval Not x Trueval in env" $
+    runComp (eval (Not (Var "x"))) [("x",TrueVal)] @?= (Right FalseVal,[]) ,
+  testCase "eval Not x Trueval in env" $
     runComp (eval (Not (List []))) [] @?= (Right TrueVal,[]),
   testCase "eval Call range(1,x) x unbound" $
     runComp (eval (Call "range" [Const (IntVal 1), Var "x"])) [] @?= (Left (EBadVar "x"),[]),
@@ -280,16 +280,16 @@ evalTests = testGroup "eval Tests"
     runComp (eval (List [])) [] @?= (Right (ListVal []),[]),
   testCase "eval List (3,2,NoneVal, string)" $
     runComp (eval (List [Const (IntVal 3),Const (IntVal 2), Const NoneVal,Const (StringVal "2")])) [] @?= (Right (ListVal [IntVal 3,IntVal 2,NoneVal,StringVal "2"]),[]),
-  testCase "exec Compr x" $
+  testCase "eval Compr x" $
     runComp (eval (Compr (Var "x") [])) [("x",IntVal 4)] @?= (Right (IntVal 4),[]),
-  testCase "exec Compr EBadVar" $
+  testCase "eval Compr EBadVar" $
     runComp (eval (Compr (Var "x") [])) [] @?= (Left (EBadVar "x"),[]),
-  testCase "exec Compr (x*x) for range(10)" $
-    runComp (eval (Compr (Oper Times (Var "x") (Var "x")) [CCFor "x" (Call "range" [Const (IntVal 10)])])) [("x",IntVal 4)] @?= (Right (IntVal 321),[]),
-  testCase "exec Compr (x) if x env x 4" $
-    runComp (eval (Compr (Var "x") [CCIf (Var "x")])) [("x",IntVal 4)] @?= (Right (ListVal [IntVal 4]),[]),
+  testCase "eval Compr (x*x) for range(10)" $
+    runComp (eval (Compr (Oper Times (Var "x") (Var "x")) [CCFor "x" (Call "range" [Const (IntVal 10)])])) [("x",IntVal 4)] @?= (Right (ListVal [IntVal 0,IntVal 1,IntVal 4,IntVal 9,IntVal 16,IntVal 25,IntVal 36,IntVal 49,IntVal 64,IntVal 81]),[]),
+  testCase "eval Compr (x) if x env x 4" $
+    runComp (eval (Compr (Var "x") [CCIf (Var "x")])) [("x",IntVal 4)] @?= (Right (IntVal 4),[]),
   testCase "eval Compr (x+1) for range (2,5)" $
-    runComp (eval (Compr (Oper Plus (Var "x") (Const (IntVal 1))) [CCFor "x" (Call "range" [Const (IntVal 2),Const (IntVal 5)])])) [("x",IntVal 4)] @?= (Right (ListVal [IntVal 12]),[])]
+    runComp (eval (Compr (Oper Plus (Var "x") (Const (IntVal 1))) [CCFor "x" (Call "range" [Const (IntVal 2),Const (IntVal 5)])])) [("x",IntVal 4)] @?= (Right (ListVal [IntVal 3,IntVal 4,IntVal 5]),[])]
 
 execTests = testGroup "exec Tests"
  [testCase "exec []" $

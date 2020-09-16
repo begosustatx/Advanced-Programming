@@ -154,14 +154,15 @@ eval (List (x:xs)) = do res1 <- eval x
                           (ListVal x) -> return (ListVal (res1:x))
                           _ -> abort (EBadArg "The argument must be a List")
 -- Needs to be fixed 
-eval (Compr e []) = do res <- eval e; return (ListVal [res])
+eval (Compr e []) = eval e
 eval (Compr e ((CCFor var exp):xs)) = do result <- eval exp
                                          case result of
-                                            (ListVal vs) -> last (map (\v -> withBinding var v (eval (Compr e xs))) vs) 
+                                            (ListVal vs) -> do bind <- mapM (\v -> withBinding var v (eval (Compr e xs))) vs
+                                                               return (ListVal bind)
                                             _   ->  abort (EBadArg "The argument must be a List")
 eval (Compr e ((CCIf exp):xs)) = do result <- eval exp
-                                    if truthy result then eval (Compr e xs)
-                                    else return (ListVal []);
+                                    if truthy result then eval e
+                                    else eval (Compr e xs) 
 
 exec :: Program -> Comp ()
 exec [] = return ()
