@@ -11,16 +11,138 @@ main :: IO ()
 main = defaultMain $ localOption (mkTimeout 1000000) tests
 
 tests :: TestTree
-tests = testGroup "Stubby tests"
+tests = testGroup "Tests" [stubbyTests, unitTests]
+
+stubbyTests = testGroup "Stubby Tests"
   [testCase "crash test" $
     execute [SExp (Call "print" [Oper Plus (Const (IntVal 2))
                                            (Const (IntVal 2))]),
              SExp (Var "hello")]
-      @?= (["4"], Just (EBadVar "hello")),
-   testCase "execute misc.ast from handout" $
-     do pgm <- read <$> readFile "examples/misc.ast"
-        out <- readFile "examples/misc.out"
-        execute pgm @?= (lines out, Nothing)]
+      @?= (["4"], Just (EBadVar "hello"))]
+  --  testCase "execute misc.ast from handout" $
+  --    do pgm <- read <$> readFile "examples/misc.ast"
+  --       out <- readFile "examples/misc.out"
+  --       execute pgm @?= (lines out, Nothing)]
+
+unitTests = testGroup "Unit Tests" [truthyTests, truthy'Tests, operateTests]--, convertToStringTests]
+
+truthyTests = testGroup "Truthy Tests"
+  [testCase "truthy FalseVal" $
+    truthy FalseVal @?= False,
+  testCase "truthy (IntVal 0)" $
+    truthy (IntVal 0) @?= False,
+  testCase "truthy (StringVal Empty)" $
+    truthy (StringVal "") @?= False,
+  testCase "truthy (ListVal [])" $
+    truthy (ListVal []) @?= False,
+  testCase "truthy NoneVal" $
+    truthy NoneVal @?= False,
+  testCase "truthy TrueVal" $
+    truthy TrueVal @?= True,
+  testCase "truthy (IntVal 1)" $
+    truthy (IntVal 1) @?= True,
+  testCase "truthy (StringVal \"text\")" $
+    truthy (StringVal "text") @?= True,
+  testCase "truthy (ListVal [NoneVal])" $
+    truthy (ListVal [NoneVal]) @?= True]
+
+truthy'Tests = testGroup "Truthy' Tests"
+  [testCase "truthy' FalseVal" $
+    truthy FalseVal @?= False,
+  testCase "truthy' TrueVal" $
+    truthy TrueVal @?= True]
+
+operateTests = testGroup "Operate Tests"
+  [testCase "operate Plus" $
+    operate Plus (IntVal 0) (IntVal 0) @?= Right (IntVal 0),
+  testCase "operate Minus" $
+    operate Minus (IntVal 0) (IntVal 0) @?= Right (IntVal 0),
+  testCase "operate Times" $
+    operate Times (IntVal 0) (IntVal 0) @?= Right (IntVal 0),
+  testCase "operate Div by Zero" $
+    operate Div (IntVal 0) (IntVal 0) @?= Left "Divide by Zero",
+  testCase "operate Mod by Zero" $
+    operate Mod (IntVal 0) (IntVal 0) @?= Left "Modulo by Zero",
+  testCase "operate Eq 0==0" $
+    operate Eq (IntVal 0) (IntVal 0) @?= Right TrueVal,
+  testCase "operate Less 0<0" $
+    operate Less (IntVal 0) (IntVal 0) @?= Right FalseVal,
+  testCase "operate Greater 0>0" $
+    operate Greater (IntVal 0) (IntVal 0) @?= Right FalseVal,
+  testCase "operate In by []" $
+    operate In (IntVal 0) (ListVal []) @?= Right FalseVal,
+  testCase "operate Plus by IntVal" $
+    operate Plus (IntVal 85) (IntVal 45) @?= Right (IntVal 130),
+  testCase "operate Minus Negative" $
+    operate Minus (IntVal 0) (IntVal 45) @?= Right (IntVal (-45)),
+  testCase "operate Times by 100" $
+    operate Times (IntVal 1) (IntVal 100) @?= Right (IntVal 100),
+  testCase "operate Div by 5" $
+    operate Div (IntVal 0) (IntVal 5) @?= Right (IntVal 0),
+  testCase "operate Mod by 5" $
+    operate Mod (IntVal 0) (IntVal 5) @?= Right (IntVal 0),
+  testCase "operate Eq 0==5" $
+    operate Eq (IntVal 0) (IntVal 5) @?= Right FalseVal,
+  testCase "operate Eq by Different Values" $
+    operate Eq (IntVal 0) (TrueVal) @?= Right FalseVal,
+  testCase "operate Eq different StringVal" $
+    operate Eq (StringVal "nothing") (StringVal "something") @?= Right FalseVal,
+  testCase "operate Eq StringVal" $
+    operate Eq (StringVal "something") (StringVal "something") @?= Right TrueVal,
+  testCase "operate Eq []==5" $
+    operate Eq (ListVal [IntVal 0]) (IntVal 5) @?= Right FalseVal,
+  testCase "operate Less 5<0" $
+    operate Less (IntVal 5) (IntVal 0) @?= Right FalseVal,
+  testCase "operate Greater 5>0" $
+    operate Greater (IntVal 5) (IntVal 0) @?= Right TrueVal,
+  testCase "operate In 0 by [0]" $
+    operate In (IntVal 0) (ListVal [IntVal 0]) @?= Right TrueVal,
+  testCase "operate Plus by StringVal" $
+    operate Plus (StringVal "") (IntVal 0) @?= Left "The values must be proper for chosen operator",
+  testCase "operate Minus by NoneVal" $
+    operate Minus (NoneVal) (NoneVal) @?= Left "The values must be proper for chosen operator",
+  testCase "operate Times by StringVal" $
+    operate Times (StringVal "") (StringVal "") @?= Left "The values must be proper for chosen operator",
+  testCase "operate Div by NoneVal" $
+    operate Div (IntVal 0) (NoneVal) @?= Left "The values must be proper for chosen operator",
+  testCase "operate Mod by StringVal" $
+    operate Mod (IntVal 0) (StringVal "") @?= Left "The values must be proper for chosen operator",
+  testCase "operate Eq Empty ListVal" $
+    operate Eq (ListVal []) (ListVal []) @?= Right TrueVal,
+  testCase "operate Less StringVal IntVal" $
+    operate Less (StringVal "") (IntVal 0) @?= Left "The values must be proper for chosen operator",
+  testCase "operate Greater IntVal and StringVal" $
+    operate Greater (IntVal 0) (StringVal "") @?= Left "The values must be proper for chosen operator",
+  testCase "operate In IntVal and StringVal" $
+    operate In (IntVal 0) (StringVal "") @?= Left "The values must be proper for chosen operator"]
+
+{-convertToStringTests = "ConvertToString Tests"
+ [testCase "convertToString NoneVal" $
+    convertToString NoneVal @?= "None",
+  testCase "convertToString TrueVal" $
+    convertToString TrueVal @?= "True",
+  testCase "convertToString FalseVal" $
+    convertToString FalseVal @?= "False",
+  testCase "convertToString IntVal 0" $
+    convertToString (IntVal 0) @?= "0",
+  testCase "convertToString IntVal 100000" $
+    convertToString (IntVal 100000) @?= "100000",
+  testCase "convertToString IntVal -40" $
+    convertToString (IntVal (-40)) @?= "-40",
+  testCase "convertToString Empty StringVal" $
+    convertToString (StringVal "") @?= "",
+  testCase "convertToString StringVal text" $
+    convertToString (StringVal "text") @?= "text",
+  testCase "convertToString StringVal multiple text" $
+    convertToString (StringVal "text text 2") @?= "text text 2",
+  testCase "convertToString ListVal [NoneVal]" $
+    convertToString (ListVal [NoneVal]) @?= "[None]",
+  testCase "convertToString ListVal [FalseVal]" $
+    convertToString (ListVal [FalseVal]) @?= "[False]",
+  testCase "convertToString ListVal [TrueVal]" $
+    convertToString (ListVal [TrueVal]) @?= "[True]",
+  testCase "convertToString ListVal [[]]" $
+    convertToString (ListVal [ListVal []]) @?= "[[]]"]-}
 
 {-
 -- Helping code
@@ -56,7 +178,6 @@ runComp (withBinding "x" (ListVal [StringVal "text"]) (look "x")) [] == (Right (
 runComp (withBinding "x" (ListVal [StringVal "text",TrueVal, FalseVal]) (look "x")) [] == (Right (ListVal [StringVal "text",TrueVal, FalseVal]),[])
 
 --output function test
-output :: String -> Comp ()
 runComp (output "x") [] == (Right (),["x"])
 runComp (output "") [] == (Right (),[""])
 runComp (output "some text") [] == (Right (),["some text"])
@@ -100,17 +221,17 @@ operate Eq (ListVal [IntVal 0]) (IntVal 5) == Right FalseVal
 operate Less (IntVal 5) (IntVal 0) == Right FalseVal
 operate Greater (IntVal 5) (IntVal 0) == Right TrueVal
 operate In (IntVal 0) (ListVal [IntVal 0]) == Right TrueVal
-operate Plus (StringVal "") (IntVal 0) == Left "Error :("
-operate Minus (NoneVal) (NoneVal) == Left "Error :("
-operate Times (StringVal "") (StringVal "") == Left "Error :("
-operate Div (IntVal 0) (NoneVal) == Left "Error :("
-operate Mod (IntVal 0) (StringVal "") == Left "Error :("
+operate Plus (StringVal "") (IntVal 0) == Left "The values must be proper for chosen operator"
+operate Minus (NoneVal) (NoneVal) == Left "The values must be proper for chosen operator"
+operate Times (StringVal "") (StringVal "") == Left "The values must be proper for chosen operator"
+operate Div (IntVal 0) (NoneVal) == Left "The values must be proper for chosen operator"
+operate Mod (IntVal 0) (StringVal "") == Left "The values must be proper for chosen operator"
 operate Eq (ListVal []) (ListVal []) == Right TrueVal
-operate Less (StringVal "") (IntVal 0) == Left "Error :("
-operate Greater (IntVal 0) (StringVal "") == Left "Error :("
-operate In (IntVal 0) (StringVal "") == Left "Error :("
+operate Less (StringVal "") (IntVal 0) == Left "The values must be proper for chosen operator"
+operate Greater (IntVal 0) (StringVal "") == Left "The values must be proper for chosen operator"
+operate In (IntVal 0) (StringVal "") == Left "The values must be proper for chosen operator"
 
-convertToString (ListVal [NoneVal, TrueVal, FalseVal, IntVal 30, StringVal "something"]) == "[\"None\",\"True\",\"False\",\"30\",\"something\"]"
+convertToString (ListVal [NoneVal, TrueVal, FalseVal, IntVal 30, StringVal "something"]) == [None,True,False,30,something]"
 
 -- apply range
 runComp (apply "range" [(IntVal 10)]) [] == (Right (ListVal [IntVal 0,IntVal 1,IntVal 2,IntVal 3,IntVal 4,IntVal 5,IntVal 6,IntVal 7,IntVal 8,IntVal 9]),[])
@@ -130,11 +251,11 @@ runComp (apply "print" []) [] == (Right NoneVal,[""])
 runComp (apply "print" [IntVal 3]) [] == (Right NoneVal,["3"])
 runComp (apply "print" [IntVal 3, NoneVal]) [] == (Right NoneVal,["3 None"])
 runComp (apply "print" [IntVal 3, StringVal "somesad", ListVal []]) [] == (Right NoneVal,["3 somesad []"])
-runComp (apply "print" [IntVal 3, StringVal "somesad", ListVal [NoneVal, NoneVal]]) [] == (Right NoneVal,["3 somesad [None None]"])
+runComp (apply "print" [IntVal 3, StringVal "somesad", ListVal [NoneVal, NoneVal]]) [] == (Right NoneVal,["3 somesad [None,None]"])
 runComp (apply "print" [IntVal 3, StringVal "somesad", ListVal [ListVal []]]) [] == (Right NoneVal,["3 somesad [[]]"])
 
 -- eval
-runComp (eval (Oper Plus (Oper Plus (Const (IntVal 3)) (Const (IntVal 4))) (Const (IntVal 3)))) [] == (Right (IntVal 10),["","","","",""])
+runComp (eval (Oper Plus (Oper Plus (Const (IntVal 3)) (Const (IntVal 4))) (Const (IntVal 3)))) [] == (Right (IntVal 10),[])
 
 -- eval Not
 runComp (eval (Not (Var "x"))) [] == (Left (EBadVar "x"),[])
@@ -165,4 +286,3 @@ runComp (exec [SDef "x" (Call "print" [(Var "x")]), SExp (Oper Plus (Var "x") (C
   
 print(x);x=(x+3);print(x)
 -}
-

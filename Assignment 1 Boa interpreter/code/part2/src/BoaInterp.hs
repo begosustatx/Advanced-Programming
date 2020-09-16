@@ -9,6 +9,7 @@ module BoaInterp
 
 import BoaAST
 import Control.Monad
+import Data.List (intercalate)
 
 type Env = [(VName, Value)]
 
@@ -18,10 +19,7 @@ data RunError = EBadVar VName | EBadFun FName | EBadArg String
 newtype Comp a = Comp {runComp :: Env -> (Either RunError a, [String]) }
 
 instance Monad Comp where
-  return = \a -> Comp (\_ -> (Right a,[])) {-
-  (>>=) = \m f -> Comp (\env -> do (a,s') <- runComp m env
-                                   (b,s'') <- runComp (f a) env
-                                   return [s''])-}
+  return = \a -> Comp (\_ -> (Right a,[]))
   m >>= f = Comp (\env -> case runComp m env of
                                (Left e, s') -> (Left e, s')
                                (Right a, s') -> case runComp (f a) env of
@@ -51,13 +49,12 @@ output = \s -> Comp (\_ -> (Right (), [s]))
 
 -- Helper functions for interpreter
 truthy :: Value -> Bool
+truthy NoneVal = False
 truthy FalseVal = False
 truthy (IntVal 0) = False
 truthy (StringVal "") = False
 truthy (ListVal []) = False
-truthy NoneVal = False
-truthy TrueVal = True
-truthy _ = True--error "Not a bool Value"
+truthy _ = True
 
 truthy' :: Bool -> Value
 truthy' True = TrueVal
@@ -75,7 +72,7 @@ operate Eq v1 v2 = Right $ truthy' (v1 == v2)
 operate Less (IntVal v1) (IntVal v2) = Right $ truthy' (v1 < v2)
 operate Greater (IntVal v1) (IntVal v2) = Right $ truthy' (v1 > v2)
 operate In v1 (ListVal v2) = Right $ truthy' (v1 `elem` v2) 
-operate _ _ _ = Left "Error :("
+operate _ _ _ = Left "The values must be proper for chosen operator"
 
 convertToString :: Value -> String
 convertToString NoneVal = "None"
@@ -83,15 +80,17 @@ convertToString TrueVal = "True"
 convertToString FalseVal = "False"
 convertToString (IntVal x) = show x
 convertToString (StringVal x) = x
-convertToString (ListVal x) = "[" ++ (unwords (map convertToString x)) ++ "]"
+convertToString (ListVal []) = "[]"
+convertToString (ListVal xs) = "[" ++ intercalate ", " (map convertToString xs) ++ "]"
 
 apply :: FName -> [Value] -> Comp Value
 apply "print" x = do ; output(unwords(map convertToString x)); return NoneVal
-apply "range" [IntVal n2] = return $ ListVal (map (IntVal) [0..(n2-1)])
-apply "range" [(IntVal n1),(IntVal n2)] = return $ ListVal (map (\x -> IntVal x) [n1..(n2-1)])
-apply "range" [(IntVal n1),(IntVal n2),(IntVal n3)] = if n1<=n2 && n3<0 then return $ ListVal []
-                                                      else if n1>n2 && n3<0 then return $ ListVal (map (\x -> IntVal x) [n1,(n3+n1)..(n2+1)])
-                                                      else return $ ListVal (map (\x -> IntVal x) [n1,(n3+n1)..(n2-1)])
+apply "range" [IntVal n2] = return $ ListVal (map IntVal [0..(n2-1)])
+apply "range" [IntVal n1,IntVal n2] = return $ ListVal (map IntVal [n1..(n2-1)])
+apply "range" [IntVal n1,IntVal n2,IntVal n3]  
+                                             | n1<=n2 && n3<0 = return $ ListVal []
+                                             | n1>n2 && n3<0 = return $ ListVal (map IntVal [n1,(n3+n1)..(n2+1)])
+                                             | otherwise = return $ ListVal (map IntVal [n1,(n3+n1)..(n2-1)])
 apply "range" x = abort (EBadArg (show x))                                                      
 apply fName _ = abort (EBadFun fName)
 
@@ -147,14 +146,23 @@ eval (Not e) = do r <- eval e
 eval (Call fName e) = do res <- eval (List e)
                          case res of
                            (ListVal x) -> apply fName x
+                           _ -> abort (EBadArg "The argument must be a List")
 eval (List []) = return (ListVal [])
 eval (List (x:xs)) = do res1 <- eval x
                         res2 <- eval (List xs)
                         case res2 of
                           (ListVal x) -> return (ListVal (res1:x))
+                          _ -> abort (EBadArg "The argument must be a List")
+eval (Compr _ []) = abort (EBadArg "The argument must be a List")
+eval (Compr _ (_:_:_)) = abort (EBadArg "The argument must be a List")
 eval (Compr e [cc]) = case cc of
-                          (CCFor vName exp) -> abort (EBadFun "Not implemented")
-                          (CCIf exp) -> abort (EBadFun "Not implemented")
+                          (CCFor _ exp) -> do result <- eval exp
+                                              case result of
+                                                (ListVal (_:_)) -> eval e
+                                                _   ->  abort (EBadArg "The argument must be a List")
+                          (CCIf exp) -> do result <- eval exp
+                                           if truthy result then eval e
+                                           else return NoneVal
 
 exec :: Program -> Comp ()
 exec [] = return ()
@@ -167,8 +175,7 @@ exec (x:xs) = case x of
                               exec xs
 
 execute :: Program -> ([String], Maybe RunError)
---execute [] = return ([],Nothing)
 execute p = let prog = runComp (exec p) [] in
               case prog of
-              (Right x, s) -> (s, Nothing)
+              (Right _, s) -> (s, Nothing)
               (Left x, s)  -> (s, Just x)
