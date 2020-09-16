@@ -25,7 +25,7 @@ stubbyTests = testGroup "Stubby Tests"
         execute pgm @?= (lines out, Nothing)]
 
 unitTests = testGroup "Unit Tests" [abortTests, lookTests, withBindingTests, outputTests, 
-                                   truthyTests, truthy'Tests, operateTests, --convertTests, Until we fix it
+                                   truthyTests, truthy'Tests, operateTests, convertTests,
                                    applyTests, evalTests, execTests] 
 
 f :: Either RunError () -> Either RunError ()
@@ -110,10 +110,10 @@ truthyTests = testGroup "Truthy Tests"
     truthy (ListVal [NoneVal]) @?= True]
 
 truthy'Tests = testGroup "Truthy' Tests"
-  [testCase "truthy' FalseVal" $
-    truthy FalseVal @?= False,
-  testCase "truthy' TrueVal" $
-    truthy TrueVal @?= True]
+  [testCase "truthy' False" $
+    truthy' False @?= FalseVal,
+  testCase "truthy' True" $
+    truthy' True @?= TrueVal]
 
 operateTests = testGroup "Operate Tests"
   [testCase "operate Plus" $
@@ -179,7 +179,6 @@ operateTests = testGroup "Operate Tests"
   testCase "operate In IntVal and StringVal" $
     operate In (IntVal 0) (StringVal "") @?= Left "The values must be proper for chosen operator"]
 
-{- Until we fix it
 convertTests = testGroup "ConvertToString Tests"
  [testCase "convertToString NoneVal" $
     convertToString NoneVal @?= "None",
@@ -207,7 +206,7 @@ convertTests = testGroup "ConvertToString Tests"
     convertToString (ListVal [TrueVal]) @?= "[True]",
   testCase "convertToString ListVal [[]]" $
     convertToString (ListVal [ListVal []]) @?= "[[]]"]
--}
+
 applyTests = testGroup "apply Tests"
  [testCase "apply range 10" $
     runComp (apply "range" [(IntVal 10)]) [] @?= (Right (ListVal [IntVal 0,IntVal 1,IntVal 2,IntVal 3,IntVal 4,IntVal 5,IntVal 6,IntVal 7,IntVal 8,IntVal 9]),[]),

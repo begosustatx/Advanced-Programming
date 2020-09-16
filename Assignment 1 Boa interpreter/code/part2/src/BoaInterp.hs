@@ -4,7 +4,7 @@ module BoaInterp
   (Env, RunError(..), Comp(..),
    abort, look, withBinding, output,
    truthy, operate, apply,
-   eval, exec, execute)
+   eval, exec, execute, truthy', convertToString)
   where
 
 import BoaAST
