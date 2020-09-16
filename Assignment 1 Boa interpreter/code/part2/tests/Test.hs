@@ -287,7 +287,7 @@ evalTests = testGroup "eval Tests"
   testCase "eval Compr (x*x) for range(10)" $
     runComp (eval (Compr (Oper Times (Var "x") (Var "x")) [CCFor "x" (Call "range" [Const (IntVal 10)])])) [("x",IntVal 4)] @?= (Right (ListVal [IntVal 0,IntVal 1,IntVal 4,IntVal 9,IntVal 16,IntVal 25,IntVal 36,IntVal 49,IntVal 64,IntVal 81]),[]),
   testCase "eval Compr (x) if x env x 4" $
-    runComp (eval (Compr (Var "x") [CCIf (Var "x")])) [("x",IntVal 4)] @?= (Right (IntVal 4),[]),
+    runComp (eval (Compr (Var "x") [CCIf (Var "x")])) [("x",IntVal 4)] @?= (Right (ListVal [IntVal 4]),[]),
   testCase "eval Compr (x+1) for range (2,5)" $
     runComp (eval (Compr (Oper Plus (Var "x") (Const (IntVal 1))) [CCFor "x" (Call "range" [Const (IntVal 2),Const (IntVal 5)])])) [("x",IntVal 4)] @?= (Right (ListVal [IntVal 3,IntVal 4,IntVal 5]),[])]
 
