@@ -273,11 +273,19 @@ runComp (eval (Call "range" [Const (IntVal 1), Var "x"])) [("x",IntVal 5)] == (R
 runComp (eval (Call "range" [Const (IntVal 5)])) [] == (Right (ListVal [IntVal 0,IntVal 1,IntVal 2,IntVal 3,IntVal 4]),[])
 runComp (eval (Call "range" [Const (IntVal 1), Const (IntVal 10), Const (IntVal 2)])) [] == (Right (ListVal [IntVal 1,IntVal 3,IntVal 5,IntVal 7,IntVal 9]),[])
 runComp (eval (Call "range" [Const (IntVal 1), Const (IntVal 10)])) [] == (Right (ListVal [IntVal 1,IntVal 2,IntVal 3,IntVal 4,IntVal 5,IntVal 6,IntVal 7,IntVal 8,IntVal 9]),[])
+
 -- eval List
 runComp (eval (List [Const NoneVal, Const (IntVal 3)])) [] ==(Right (ListVal [NoneVal,IntVal 3]),[])
 runComp (eval (List [Const NoneVal])) [] == (Right (ListVal [NoneVal]),[])
 runComp (eval (List [])) [] == (Right (ListVal []),[])
 runComp (eval (List [Const (IntVal 3),Const (IntVal 2), Const NoneVal,Const (StringVal "2")])) [] == (Right (ListVal [IntVal 3,IntVal 2,NoneVal,StringVal "2"]),[])
+
+-- eval Compr
+runComp (eval (Compr (Var "x") [])) [("x",IntVal 4)] ==  (Right (IntVal 4),[])
+runComp (eval (Compr (Var "x") [])) [] == (Left (EBadVar "x"),[])
+runComp (eval (Compr (Oper Times (Var "x") (Var "x")) [CCFor "x" (Call "range" [Const (IntVal 10)])])) [("x",IntVal 4)] == (Right (IntVal 321),[])
+runComp (eval (Compr (Var "x") [CCIf (Var "x")])) [("x",IntVal 4)] == (Right (ListVal [IntVal 4]),[])
+runComp (eval (Compr (Oper Plus (Var "x") (Const (IntVal 1))) [CCFor "x" (Call "range" [Const (IntVal 2),Const (IntVal 5)])])) [("x",IntVal 4)] == (Right (ListVal [IntVal 12]),[])
 
 -- exec
 runComp (exec []) [] == (Right (),[])
