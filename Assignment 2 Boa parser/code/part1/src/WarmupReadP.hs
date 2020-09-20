@@ -8,7 +8,7 @@ module WarmupReadP where
 --   tokens may be separated by arbtrary whitespace (spaces, tabs, newlines).
 
 -- Rewritten grammar, without left-recursion:
---   E  ::= T' E'
+--   E  ::= T' F
 --   F  ::= "+" T F | "-" T F | ε .
 --   T' ::= T | "-" T .
 --   T  ::= num | "(" E ")" .
@@ -38,12 +38,12 @@ eP = do
   return $ e2 e1
 
 fP :: ReadP (Exp->Exp)
-fP = do  
+fP = tokenize $ (do  
     op <- satisfy (`elem` ['-','+'])
     e2 <- chainl1 tP plusP
     case op of
       '+' -> return $ \e1 -> Add e1 e2
-      _ -> return $ \e1 -> Add e1 (Negate e2)
+      _ -> return $ \e1 -> Add e1 (Negate e2)) <|> (do eof; return (\e -> e))
     where 
       plusP = tokenize $ do
                         op <- satisfy (`elem` ['-','+'])
@@ -52,7 +52,7 @@ fP = do
                            _ -> return $ \e1 e2 -> Add e1 (Negate e2)
 
 t'P :: ReadP Exp
-t'P = tP <|> do char' '-'
+t'P = tP <|> do _ <- char' '-'
                 n <- tP
                 return (Negate n)
 
@@ -68,7 +68,7 @@ parseString :: String -> Either ParseError Exp
 parseString s = do
     case filter (null . snd ) (readP_to_S eP s) of
         [] -> Left "No valid parse"
-        [(exp, remainder)] ->
-            if null remainder then Right exp
+        [(expr, remainder)] ->
+            if null remainder then Right expr
             else Left $ "Unparsed remainder:" ++remainder
         _ -> Left "Ambigius parse"
