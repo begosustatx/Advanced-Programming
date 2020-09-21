@@ -5,7 +5,7 @@ module WarmupReadP where
 --   T ::= num | "(" E ")" .
 -- Lexical specifications:
 --   num is one or more decimal digits (0-9)
---   tokens may be separated by arbtrary whitespace (spaces, tabs, newlines).
+--   tokens may be separated by arbitrary whitespace (spaces, tabs, newlines).
 
 -- Rewritten grammar, without left-recursion:
 --   E  ::= T' F
@@ -25,39 +25,28 @@ type ParseError = String  -- not particularly informative with ReadP
 data Exp = Num Int | Negate Exp | Add Exp Exp
   deriving (Eq, Show)
 
-tokenize :: Parser a -> Parser a
+tokenize :: ReadP a -> ReadP a
 tokenize p = skipSpaces >> p
 
-char' :: Char -> Parser Char 
+char' :: Char -> ReadP Char 
 char' = tokenize . char 
 
 eP :: ReadP Exp
-eP = do 
+eP = tokenize $ do 
   e1 <- t'P
-  e2 <- fP
-  return $ e2 e1
+  oprP e1
 
-fP :: ReadP (Exp->Exp)
-fP = tokenize $ (do  
-    op <- satisfy (`elem` ['-','+'])
-    e2 <- chainl1 tP plusP
-    case op of
-      '+' -> return $ \e1 -> Add e1 e2
-      _ -> return $ \e1 -> Add e1 (Negate e2)) <|> (do eof; return (\e -> e))
-    where 
-      plusP = tokenize $ do
-                        op <- satisfy (`elem` ['-','+'])
-                        case op of
-                           '+' -> return $ \e1 e2 -> Add e1 e2
-                           _ -> return $ \e1 e2 -> Add e1 (Negate e2)
+oprP :: Exp -> ReadP Exp
+oprP inval = (do _<-char' '-'; t <- tP; oprP (Add inval (Negate t))) <|> 
+             (do _<-char' '+';t <- tP; oprP(Add inval t)) <|> return inval
 
 t'P :: ReadP Exp
-t'P = tP <|> do _ <- char' '-'
-                n <- tP
-                return (Negate n)
+t'P = tokenize (tP <|> (do _ <- char' '-'
+                           n <- tP
+                           return (Negate n)))
 
 tP :: ReadP Exp 
-tP = numberP <|> between (char' '(') (char' ')') eP
+tP = tokenize $ numberP <|> between (char' '(') (char' ')') eP
 
 numberP :: ReadP Exp
 numberP = tokenize $ do 
@@ -66,7 +55,7 @@ numberP = tokenize $ do
 
 parseString :: String -> Either ParseError Exp
 parseString s = do
-    case filter (null . snd ) (readP_to_S eP s) of
+    case filter (null . snd ) (readP_to_S (do r<-eP;skipSpaces;return r) s) of
         [] -> Left "No valid parse"
         [(expr, remainder)] ->
             if null remainder then Right expr
