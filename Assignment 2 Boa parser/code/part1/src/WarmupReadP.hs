@@ -34,7 +34,8 @@ char' = tokenize . char
 eP :: ReadP Exp
 eP = tokenize $ do 
   e1 <- t'P
-  oprP e1
+  r <- oprP e1 
+  skipSpaces >> return r
 
 oprP :: Exp -> ReadP Exp
 oprP inval = (do _<-char' '-'; t <- tP; oprP (Add inval (Negate t))) <|> 
@@ -55,7 +56,7 @@ numberP = tokenize $ do
 
 parseString :: String -> Either ParseError Exp
 parseString s = do
-    case filter (null . snd ) (readP_to_S (do r<-eP;skipSpaces;return r) s) of
+    case readP_to_S (do r<-eP;eof >> return r) s of
         [] -> Left "No valid parse"
         [(expr, remainder)] ->
             if null remainder then Right expr
