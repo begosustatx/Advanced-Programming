@@ -45,9 +45,29 @@ tests = testGroup "Minimal tests" [
 
 -- readP_to_S stringConst "'asdsa'" == [(Const (StringVal "asdsa"),"")] OK
 -- readP_to_S stringConst "'asdsa@" == [] OK
+-- readP_to_S stringConst "'asdsa@'" == [(Const (StringVal "asdsa@"),"")] OK
 -- readP_to_S stringConst "''"  == [(Const (StringVal ""),"")] OK
 -- readP_to_S stringConst "'asdss   '" == [...,(Const (StringVal "asdss   "),"")] OK
 -- readP_to_S stringConst "'asd\'sa'" == [(Const (StringVal "asd"),"sa'"),(Const (StringVal "asd'sa"),"")] OK
 -- readP_to_S stringConst "'asd\nsa'" == [(Const (StringVal "asd\nsa"),"")] OK
 -- readP_to_S stringConst "'asd\\sa'" == [(Const (StringVal "asd\\sa"),"")] OK
--- readP_to_S stringConst "'asd//sa'" == [] OK
+-- readP_to_S stringConst "'asd//sa'" == [(Const (StringVal "asd//sa"),"")] OK
+-- readP_to_S stringConst "'\"#~ '" == [(Const (StringVal "\"#~"),""),(Const (StringVal "\"#~ "),"")] OK
+{-
+readP_to_S ident "x" [(Right (Var "x"),"")]
+readP_to_S ident "_x" [(Right (Var "_"),"x"),(Right (Var "_x"),"")]
+readP_to_S finalExpr  "x" [((),"")]
+readP_to_S finalExpr "_x" [((),"x"),((),"")]
+readP_to_S finalExpr "None" [((),"one"),((),"ne"),((),"e"),((),""),((),"")]
+readP_to_S oper "not in" [((),"")]
+readP_to_S oper "*" [((),"")]
+readP_to_S oper "+" [((),"")]
+readP_to_S oper "-" [((),"")]
+readP_to_S oper "//" [((),"")]
+readP_to_S oper "==" [((),"")]
+readP_to_S oper "%" [((),"")]
+
+
+readP_to_S program "two=2;one=2" [([SDef "two" (Const NoneVal),SDef "one" (Const NoneVal)],"")]
+parseString "x=2;y=2" Right [SDef "x" (Const NoneVal),SDef "y" (Const NoneVal)]
+-}
