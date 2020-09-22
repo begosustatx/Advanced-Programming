@@ -47,10 +47,10 @@ stmts = do s<-stmt;endStmt s
 
 stmt :: ReadP Stmt
 -- tokenize $                     
-stmt = (do v<-ident; string "="; e<-expr; return $ SDef v e) <|> (do e<-expr; return $ SExp e)
+stmt = (do v<-ident; char' '='; e<-expr; return $ SDef v e) <|> (do e<-expr; return $ SExp e)
 
 endStmt :: Stmt -> ReadP Program
-endStmt s = tokenize $ (do string ";"; ss<-stmts; return (s:ss)) <|> (do return [s])
+endStmt s = tokenize $ (do char' ';'; ss<-stmts; return (s:ss)) <|> (do return [s])
 
 expr :: ReadP Exp
 expr = tokenize $ (do string "not "; e<-expr; return $ Not e) <|> expr'
@@ -60,9 +60,21 @@ expr' = tokenize $ do t<-term; oper t
 
 -- SKIPPED
 term :: ReadP Exp
-term = tokenize $ (do between (char' '(') (char' ')') expr) <|> (do ident; between (char' '(') (char' ')') exprz) <|>
-      (do between (char' '[') (char' ']') exprz) <|> (do string "["; e<-expr; fc<-forClause; c<-clausez fc; string "]"; return $ Compr e c)
-       <|> finalExpr
+term = tokenize $ (do between (char' '(') (char' ')') expr) <|> termCall <|> termList <|>
+      (do char' '['; e<-expr; fc<-forClause; c<-clausez fc; char' ']'; return $ Compr e c) <|> finalExpr
+
+termCall :: ReadP Exp
+termCall = do v<-ident
+              char' '('
+              e<-exprz
+              char' ')'
+              return $ Call v e
+
+termList :: ReadP Exp
+termList = do char' '['
+              e<-exprz
+              char' ']'
+              return $ List e
 
 finalExpr :: ReadP Exp
 finalExpr = tokenize $ numConst <|> stringConst <|> (do string "None"; return $ Const NoneVal) <|> 
@@ -74,7 +86,7 @@ oper :: Exp -> ReadP Exp
 oper inval = tokenize $ (do string "=="; e<-expr'; oper (Oper Eq inval e)) <|> (do string "!="; e<-expr'; e1<-oper (Oper Eq inval e);return $ Not e1)
                 <|> (do string "<"; e<-expr'; oper (Oper Less inval e)) <|> (do string ">";  e<-expr'; oper (Oper Greater inval e))
                 <|> (do string ">="; e<-expr'; e1<-oper (Oper Less inval e);return $ Not e1) <|> (do string "<="; e<-expr'; e1<-oper (Oper Greater inval e);return $ Not e1)
-                <|> (do string "in"; e<-expr'; oper (Oper In inval e)) <|> (do string "not"; string " in"; e<-expr'; e1<-oper (Oper In inval e); return $ Not e1)
+                <|> (do string "in "; e<-expr'; oper (Oper In inval e)) <|> (do string "not"; string " in"; e<-expr'; e1<-oper (Oper In inval e); return $ Not e1)
                 <|> arithOper inval
 
 arithOper :: Exp -> ReadP Exp
@@ -100,13 +112,13 @@ ifClause = tokenize $  do string "if"
 
 clausez :: CClause -> ReadP [CClause]
 clausez c = tokenize $ (do forc<-forClause; cs<-clausez forc;return (c:cs)) <|>
-                       (do ifc<-ifClause; cs<-clausez ifc; return (c:cs))
+                       (do ifc<-ifClause; cs<-clausez ifc; return (c:cs)) <|> return []
 
-exprz :: ReadP Exp
-exprz = tokenize $ exprs--; return()) <|> return ()
+exprz :: ReadP [Exp]
+exprz = tokenize $ (do e<-exprs;return $ e) <|> (return [])
 
-exprs :: ReadP Exp
-exprs = tokenize $ expr -- <|> (do e<-expr; string ","; es<-exprs; return List [e])
+exprs :: ReadP [Exp]
+exprs = tokenize $ (do e<-expr;return [e]) <|> (do e<-expr; string ","; es<-exprs; return $ e:es)
 
 newtype Keyword = Keyword String
                         deriving (Eq, Show, Read)
@@ -122,10 +134,10 @@ varName = tokenize $ do
                firstChar = satisfy (\a -> isLetter a || a == '_')
                nonFirstChar = satisfy (\a -> isDigit a || isLetter a || a == '_')
 
-ident :: ReadP String -- (Either Keyword String) TODO see how to defined for keywords      
+ident :: ReadP String 
 ident = do n <- varName 
-           if n `elem` boaReservedWords then pfail  -- $ Left (Keyword n)
-           else return n -- $ Right (Var n)
+           if n `elem` boaReservedWords then pfail 
+           else return n
 
 -- TODO represent negatives
 numConst :: ReadP Exp
