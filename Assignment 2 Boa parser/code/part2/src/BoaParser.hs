@@ -52,7 +52,7 @@ stmt = (do v<-ident; char' '='; e<-expr; return $ SDef v e) <|> (do e<-expr; ret
 endStmt :: Stmt -> ReadP Program
 endStmt s = tokenize $ (do char' ';'; ss<-stmts; return (s:ss)) <|> (do return [s])
 
-expr :: ReadP Exp
+expr :: ReadP Exp -- without space solution for Expression misc
 expr = tokenize $ (do string "not "; e<-expr; return $ Not e) <|> expr'
 
 expr' :: ReadP Exp
@@ -90,32 +90,32 @@ oper inval = tokenize $ (do string "=="; e<-expr'; oper (Oper Eq inval e)) <|> (
                 <|> arithOper inval
 
 arithOper :: Exp -> ReadP Exp
-arithOper inval = tokenize $ (do string "+"; e<-expr'; arithOper (Oper Plus inval e)) <|> 
-                             (do string "-"; e<-expr'; arithOper (Oper Minus inval e)) <|> factOper inval
+arithOper inval = tokenize $ (do string "+"; e<-expr'; arithOper (Oper Plus inval e)) <++ 
+                             (do string "-"; e<-expr'; arithOper (Oper Minus inval e)) <++ factOper inval
 
 factOper :: Exp -> ReadP Exp
-factOper inval = tokenize $ (do string "*"; e<-expr'; factOper (Oper Times inval e)) <|> 
-                      (do string "//"; e<-expr'; factOper (Oper Div inval e)) <|> 
-                      (do string "%"; e<-expr'; factOper (Oper Mod inval e)) <|> return inval
+factOper inval = tokenize $ (do string "*"; e<-expr'; factOper (Oper Times inval e)) <++ 
+                      (do string "//"; e<-expr'; factOper (Oper Div inval e)) <++ 
+                      (do string "%"; e<-expr'; factOper (Oper Mod inval e)) <++ return inval
 
 forClause :: ReadP CClause
-forClause = tokenize $ do string "for"
+forClause = tokenize $ do string "for "
                           v<-ident
-                          string "in"
+                          skipSpaces >> string "in "
                           e<-expr
                           return $ CCFor v e
 
 ifClause :: ReadP CClause
-ifClause = tokenize $  do string "if"
+ifClause = tokenize $  do string "if "
                           e<-expr
                           return $ CCIf e
 
 clausez :: CClause -> ReadP [CClause]
 clausez c = tokenize $ (do forc<-forClause; cs<-clausez forc;return (c:cs)) <|>
-                       (do ifc<-ifClause; cs<-clausez ifc; return (c:cs)) <|> return []
+                       (do ifc<-ifClause; cs<-clausez ifc; return (c:cs)) <|> return [c]
 
 exprz :: ReadP [Exp]
-exprz = tokenize $ (do e<-exprs;return $ e) <|> (return [])
+exprz = tokenize $ (do e<-exprs;return $ e) <|> return []
 
 exprs :: ReadP [Exp]
 exprs = tokenize $ (do e<-expr;return [e]) <|> (do e<-expr; string ","; es<-exprs; return $ e:es)
