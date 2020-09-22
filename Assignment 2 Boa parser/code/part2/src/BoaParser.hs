@@ -6,8 +6,8 @@ Program ::= Stmts
 Stmts ::= Stmt endStmt
 endStmt ::= ";" Stmts | e
 Stmt ::= ident "=" Expr | Expr
-Expr ::= "not" Expr | Term Expr'
-Expr'  ::= Oper Term Expr' | e
+Expr ::= "not" Expr | Expr'
+Expr' ::= Term Oper Expr' | Term
 Term :: = "(" Expr ")" | ident "(" Exprz ")" | "[" Exprz "]" | "[" Expr ForClause Clausez "]" | FinalExpr
 FinalExpr :: = numConst | stringConst | "None" | "True" | "False" | ident
 Oper ::= "==" | "!=" | "<" | "<=" | ">" | ">=" | "in" | "not" "in" | ArithOper
@@ -46,61 +46,67 @@ stmts :: ReadP Program
 stmts = do s<-stmt;endStmt s
 
 stmt :: ReadP Stmt
--- tokenize $                     -set expr instead of finalExpr
-stmt = (do v<-ident; string "="; e<-finalExpr; return $ SDef v e) <|> (do e<-finalExpr; return $ SExp e)
+-- tokenize $                     
+stmt = (do v<-ident; string "="; e<-expr; return $ SDef v e) <|> (do e<-expr; return $ SExp e)
 
 endStmt :: Stmt -> ReadP Program
 endStmt s = tokenize $ (do string ";"; ss<-stmts; return (s:ss)) <|> (do return [s])
 
-expr :: ReadP ()
-expr = tokenize $ (do string "not"; expr; return()) <|> (do term; expr'; return ())
+expr :: ReadP Exp
+expr = tokenize $ (do string "not "; e<-expr; return $ Not e) <|> expr'
 
-expr' :: ReadP ()
-expr' = tokenize $ (do oper; term; expr'; return()) <|> (do return ())
+expr' :: ReadP Exp
+expr' = tokenize $ do t<-term; oper t
 
-term :: ReadP ()
-term = tokenize $ (do string "("; expr; string ")"; return()) <|> (do ident; string "("; exprz; string ")"; return()) <|>
-       (do string "["; exprz; string "]"; return()) <|> (do string "["; expr; fc<-forClause; clausez fc; string "]"; return())
-       <|> (do finalExpr; return ())
+-- SKIPPED
+term :: ReadP Exp
+term = tokenize $ (do between (char' '(') (char' ')') expr) <|> (do ident; between (char' '(') (char' ')') exprz) <|>
+      (do between (char' '[') (char' ']') exprz) <|> (do string "["; e<-expr; fc<-forClause; c<-clausez fc; string "]"; return $ Compr e c)
+       <|> finalExpr
 
 finalExpr :: ReadP Exp
 finalExpr = tokenize $ numConst <|> stringConst <|> (do string "None"; return $ Const NoneVal) <|> 
             (do string "True"; return $ Const TrueVal) <|> (do string "False"; return $ Const FalseVal) <|> 
             (do v<-ident;return $ Var v)
 
-oper :: ReadP ()
-oper = tokenize $ (do string "=="; return ()) <|> (do string "!="; return ()) <|> (do string "<"; return ()) <|> 
-       (do string "<="; return ()) <|> (do string ">"; return ()) <|> (do string ">="; return ()) <|> 
-       (do string "in"; return ()) <|> (do string "not"; string " in"; return ())  <|> (do arithOper; return ())
+-- SKIPPED
+oper :: Exp -> ReadP Exp
+oper inval = tokenize $ (do string "=="; e<-expr'; oper (Oper Eq inval e)) <|> (do string "!="; e<-expr'; e1<-oper (Oper Eq inval e);return $ Not e1)
+                <|> (do string "<"; e<-expr'; oper (Oper Less inval e)) <|> (do string ">";  e<-expr'; oper (Oper Greater inval e))
+                <|> (do string ">="; e<-expr'; e1<-oper (Oper Less inval e);return $ Not e1) <|> (do string "<="; e<-expr'; e1<-oper (Oper Greater inval e);return $ Not e1)
+                <|> (do string "in"; e<-expr'; oper (Oper In inval e)) <|> (do string "not"; string " in"; e<-expr'; e1<-oper (Oper In inval e); return $ Not e1)
+                <|> arithOper inval
 
-arithOper :: ReadP ()
-arithOper = tokenize $ (do string "+"; return ()) <|> (do string "-"; return ()) <|> (do factOper; return ())
+arithOper :: Exp -> ReadP Exp
+arithOper inval = tokenize $ (do string "+"; e<-expr'; arithOper (Oper Plus inval e)) <|> 
+                             (do string "-"; e<-expr'; arithOper (Oper Minus inval e)) <|> factOper inval
 
-factOper :: ReadP ()
-factOper = tokenize $ (do string "*"; return ()) <|> (do string "//"; return ()) <|> (do string "%"; return ())
+factOper :: Exp -> ReadP Exp
+factOper inval = tokenize $ (do string "*"; e<-expr'; factOper (Oper Times inval e)) <|> 
+                      (do string "//"; e<-expr'; factOper (Oper Div inval e)) <|> 
+                      (do string "%"; e<-expr'; factOper (Oper Mod inval e)) <|> return inval
 
 forClause :: ReadP CClause
 forClause = tokenize $ do string "for"
                           v<-ident
                           string "in"
-                          e<-finalExpr --expr
+                          e<-expr
                           return $ CCFor v e
 
 ifClause :: ReadP CClause
 ifClause = tokenize $  do string "if"
-                          e<-finalExpr --expr
+                          e<-expr
                           return $ CCIf e
 
 clausez :: CClause -> ReadP [CClause]
 clausez c = tokenize $ (do forc<-forClause; cs<-clausez forc;return (c:cs)) <|>
                        (do ifc<-ifClause; cs<-clausez ifc; return (c:cs))
 
-exprz :: ReadP ()
-exprz = tokenize $ (do exprs; return()) <|> return ()
+exprz :: ReadP Exp
+exprz = tokenize $ exprs--; return()) <|> return ()
 
-exprs :: ReadP ()
-exprs = tokenize $ (do expr; return ()) 
-    <|> (do expr; string ","; exprs; return ())
+exprs :: ReadP Exp
+exprs = tokenize $ expr -- <|> (do e<-expr; string ","; es<-exprs; return List [e])
 
 newtype Keyword = Keyword String
                         deriving (Eq, Show, Read)
@@ -118,7 +124,7 @@ varName = tokenize $ do
 
 ident :: ReadP String -- (Either Keyword String) TODO see how to defined for keywords      
 ident = do n <- varName 
-           if n `elem` boaReservedWords then return "" -- $ Left (Keyword n)
+           if n `elem` boaReservedWords then pfail  -- $ Left (Keyword n)
            else return n -- $ Right (Var n)
 
 -- TODO represent negatives
