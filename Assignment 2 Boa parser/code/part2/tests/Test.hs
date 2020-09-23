@@ -25,7 +25,8 @@ stubbyTests = testGroup "Minimal tests" [
 unitTests = testGroup "Unit Tests" [identifiersTests, stringTest, numberTests,
                                     relOperTests, arithOperTests, factorOperTests, mixOperTests,
                                     commentTests, clauseTests, callTests, listTests,
-                                    associationTest, stmtTests, stmtsTests] 
+                                    associationTest, stmtTests, stmtsTests, 
+                                    crashBoaTests, miscBoaTests] 
 
 identifiersTests = testGroup "identifiers Tests"
   [testCase "ident x - Var x" $
@@ -244,3 +245,23 @@ stmtsTests = testGroup "statments Tests"
      parseString "3+3;x=3;y=2" @?= Right [SExp (Oper Plus (Const (IntVal 3)) (Const (IntVal 3))),SDef "x" (Const (IntVal 3)),SDef "y" (Const (IntVal 2))],
    testCase "definition statments" $
      parseString "x=3;[1,2,3,4]" @?= Right [SDef "x" (Const (IntVal 3)),SExp (List [Const(IntVal (i+1)) | i <- [0..3]])]]
+
+crashBoaTests = testGroup "parse crash.boa from handout Tests"
+  [testCase "first line of misc.boa parse" $
+     parseString "print(2+2); hello" @?= Right [SExp (Call "print" [Oper Plus (Const (IntVal 2)) (Const (IntVal 2))]), SExp (Var "hello")]]
+
+miscBoaTests = testGroup "parse misc.boa from handout Tests"
+  [testCase "first line of misc.boa parse" $
+     parseString "squares = [x*x for x in range(10)]" @?= Right [SDef "squares" (Compr (Oper Times (Var "x") (Var "x")) [CCFor "x" (Call "range" [Const (IntVal 10)])])],
+   testCase "second line of misc.boa parse" $
+     parseString "print([123, [squares, print(321)]])" @?= Right [SExp (Call "print" [List [Const (IntVal 123), List [Var "squares", Call "print" [Const (IntVal 321)]]]])] ,
+   testCase "third line of misc.boa parse" $
+     parseString "print('Odd squares:', [x for x in squares if x % 2 == 1])" @?= Right [SExp (Call "print" [Const (StringVal "Odd squares:"), Compr (Var "x") [CCFor "x" (Var "squares"), CCIf (Oper Eq (Oper Mod (Var "x") (Const (IntVal 2))) (Const (IntVal 1)))]])],
+   testCase "fourth line of misc.boa parse" $
+     parseString "n = 5" @?= Right [SDef "n" (Const (IntVal 5))],
+   testCase "fifth line of misc.boa parse" $
+     parseString "composites = [j for i in range(2, n) for j in range(i*2, n*n, i)]" @?= Right [SDef "composites" (Compr (Var "j") [CCFor "i" (Call "range" [Const (IntVal 2),Var "n"]),CCFor "j" (Call "range" [Oper Times (Var "i") (Const (IntVal 2)), Oper Times (Var "n") (Var "n"), Var "i"])])],
+   testCase "sixth line of misc.boa parse" $
+     parseString "print('Printing all primes below', n*n)" @?= Right [SExp (Call "print" [Const (StringVal "Printing all primes below"), Oper Times (Var "n") (Var "n")])],
+   testCase "seventh line of misc.boa parse" $
+     parseString "[print(x) for x in range(2,n*n) if x not in composites]" @?= Right [SExp (Compr (Call "print" [Var "x"]) [CCFor "x" (Call "range" [Const (IntVal 2), Oper Times (Var "n") (Var "n")]), CCIf (Not (Oper In (Var "x") (Var "composites")))])]]
