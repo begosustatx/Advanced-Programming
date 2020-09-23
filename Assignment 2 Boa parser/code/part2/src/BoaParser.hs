@@ -45,20 +45,18 @@ program = tokenize stmts
 stmts :: ReadP Program
 stmts = do s<-stmt;endStmt s
 
-stmt :: ReadP Stmt
--- tokenize $                     
+stmt :: ReadP Stmt                   
 stmt = (do v<-ident; char' '='; e<-expr; return $ SDef v e) <|> (do e<-expr; return $ SExp e)
 
 endStmt :: Stmt -> ReadP Program
 endStmt s = tokenize $ (do char' ';'; ss<-stmts; return (s:ss)) <|> (do return [s])
 
-expr :: ReadP Exp -- without space solution for Expression misc
+expr :: ReadP Exp
 expr = tokenize $ (do string "not "; e<-expr; return $ Not e) <|> expr'
 
 expr' :: ReadP Exp
 expr' = tokenize $ do t<-term; oper t
 
--- SKIPPED
 term :: ReadP Exp
 term = tokenize $ (do between (char' '(') (char' ')') expr) <|> termCall <|> termList <|>
       (do char' '['; e<-expr; fc<-forClause; c<-clausez fc; char' ']'; return $ Compr e c) <|> finalExpr
@@ -81,10 +79,9 @@ finalExpr = tokenize $ numConst <|> stringConst <|> (do string "None"; return $ 
             (do string "True"; return $ Const TrueVal) <|> (do string "False"; return $ Const FalseVal) <|> 
             (do v<-ident;return $ Var v)
 
--- SKIPPED
 oper :: Exp -> ReadP Exp
 oper inval = tokenize $ (do string "=="; e<-expr'; oper (Oper Eq inval e)) <|> (do string "!="; e<-expr'; e1<-oper (Oper Eq inval e);return $ Not e1)
-                <|> (do string "<"; e<-expr'; oper (Oper Less inval e)) <|> (do string ">";  e<-expr'; oper (Oper Greater inval e))
+                <|> (do string "<"; e<-expr'; oper (Oper Less inval e)) <|> (do string ">"; e<-expr'; oper (Oper Greater inval e))
                 <|> (do string ">="; e<-expr'; e1<-oper (Oper Less inval e);return $ Not e1) <|> (do string "<="; e<-expr'; e1<-oper (Oper Greater inval e);return $ Not e1)
                 <|> (do string "in "; e<-expr'; oper (Oper In inval e)) <|> (do string "not"; string " in"; e<-expr'; e1<-oper (Oper In inval e); return $ Not e1)
                 <|> arithOper inval
@@ -120,8 +117,6 @@ exprz = tokenize $ (do e<-exprs;return $ e) <|> return []
 exprs :: ReadP [Exp]
 exprs = tokenize $ (do e<-expr;return [e]) <|> (do e<-expr; string ","; es<-exprs; return $ e:es)
 
-newtype Keyword = Keyword String
-                        deriving (Eq, Show, Read)
 boaReservedWords :: [String]
 boaReservedWords = ["None", "True", "False", "for", "if", "in", "not"]
 

@@ -39,7 +39,7 @@ eP = tokenize $ do
 
 oprP :: Exp -> ReadP Exp
 oprP inval = (do _<-char' '-'; t <- tP; oprP (Add inval (Negate t))) <|> 
-             (do _<-char' '+';t <- tP; oprP(Add inval t)) <|> return inval
+             (do _<-char' '+'; t <- tP; oprP (Add inval t)) <|> return inval
 
 t'P :: ReadP Exp
 t'P = tokenize (tP <|> (do _ <- char' '-'
