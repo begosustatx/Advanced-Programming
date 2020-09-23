@@ -112,7 +112,7 @@ clausez c = tokenize $ (do forc<-forClause; cs<-clausez forc;return (c:cs)) <|>
                        (do ifc<-ifClause; cs<-clausez ifc; return (c:cs)) <|> return [c]
 
 exprz :: ReadP [Exp]
-exprz = tokenize $ (do e<-exprs;return $ e) <|> return []
+exprz = tokenize $ do exprs <|> return []
 
 exprs :: ReadP [Exp]
 exprs = tokenize $ (do e<-expr;return [e]) <|> (do e<-expr; string ","; es<-exprs; return $ e:es)
@@ -134,14 +134,17 @@ ident = do n <- varName
            if n `elem` boaReservedWords then pfail 
            else return n
 
--- TODO represent negatives
 numConst :: ReadP Exp
-numConst = tokenize $ do
-                     first <- (do minus;digit) <|> digit
-                     case first of
+numConst = tokenize $ (do first <- (do minus;digit)
+                          case first of
                              '0' -> return $ Const (IntVal (read [first]))
                              _ -> do rest <- restDigits
-                                     return $ Const (IntVal (read (first:rest)))
+                                     return $ Const (IntVal (-(read (first:rest))))) <|> 
+                    (do first <- digit
+                        case first of
+                           '0' -> return $ Const (IntVal (read [first]))
+                           _ -> do rest <- restDigits
+                                   return $ Const (IntVal (read (first:rest))))
                      where
                           minus = char '-'
                           nonZero n = n `elem` ['1'..'9']
@@ -152,10 +155,12 @@ stringConst :: ReadP Exp
 stringConst = do str <- between (char' '\'') (char' '\'') (many stringChar)
                  return $ Const (StringVal str)
               where
-                  stringChar = satisfy isAscii
+                  stringChar = satisfy (\a -> isAscii a && notElem a ['\DEL', '\NUL', '\''])
 
 tokenize :: ReadP a -> ReadP a
-tokenize p = skipSpaces >> p
+tokenize p = (do skipSpaces; char '#'; many skipChar; char '\n'; p) <++ (do skipSpaces; char '#'; many skipChar; p) <++ (skipSpaces>>p)
+                where
+                    skipChar = satisfy isAscii
 -- TODO add for # comments
 
 char' :: Char -> ReadP Char 
