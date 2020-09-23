@@ -150,7 +150,7 @@ numConst = tokenize $ (do first <- (do minus;digit)
                           nonZero n = n `elem` ['1'..'9']
                           digit = satisfy (\n-> nonZero n || n=='0')
                           restDigits = many $ satisfy isDigit
--- TODO newline? e?
+
 stringConst :: ReadP Exp
 stringConst = do str <- between (char' '\'') (char' '\'') (many stringChar)
                  return $ Const (StringVal str)
@@ -158,10 +158,12 @@ stringConst = do str <- between (char' '\'') (char' '\'') (many stringChar)
                   stringChar = satisfy (\a -> isAscii a && notElem a ['\DEL', '\NUL', '\''])
 
 tokenize :: ReadP a -> ReadP a
-tokenize p = (do skipSpaces; char '#'; many skipChar; char '\n'; p) <++ (do skipSpaces; char '#'; many skipChar; p) <++ (skipSpaces>>p)
-                where
-                    skipChar = satisfy isAscii
--- TODO add for # comments
+tokenize p = (do removeComments; char '\n'; p) <++ (do removeComments; p) <++ (skipSpaces>>p)
+
+removeComments :: ReadP [Char]
+removeComments = do skipSpaces; char '#'; many skipChar;
+                    where
+                        skipChar = satisfy isAscii
 
 char' :: Char -> ReadP Char 
 char' = tokenize . char 
@@ -173,4 +175,4 @@ parseString s = do
         [(exp, remainder)] ->
             if null remainder then Right exp
             else Left $ "Unparsed remainder:" ++remainder
-        _ -> Left "Ambigius parse"
+        _ -> Left "Ambiguous parse"
