@@ -23,7 +23,7 @@ stubbyTests = testGroup "Minimal tests" [
       Right p -> assertFailure $ "Unexpected parse: " ++ show p]
 
 unitTests = testGroup "Unit Tests" [identifiersTests, stringTest, numberTests,
-                                    relOperTests, arithOperTests, factorOperTests, mixOperTests,
+                                    relOperTests, arithOperTests, factorOperTests,
                                     commentTests, clauseTests, callTests, listTests,
                                     associationTest, stmtTests, stmtsTests, 
                                     crashBoaTests, miscBoaTests] 
@@ -75,6 +75,12 @@ stringTest = testGroup "string Tests"
      parseString "'asd\\sa'" @?= Right [SExp (Const (StringVal "asd\\sa"))],
    testCase "string 'asd//sa' - StringVal 'asd//sa'" $
      parseString "'asd//sa'" @?= Right [SExp (Const (StringVal "asd//sa"))],
+   testCase "string '\\\"'' - No valid parse" $
+     parseString "'\\\"'" @?= Left "No valid parse",
+   testCase "string '\\t'' - No valid parse" $
+     parseString "'\\t'" @?= Left "No valid parse",
+   testCase "string '\\N'' - No valid parse" $
+     parseString "'\\N'" @?= Left "No valid parse",
    testCase "string '' - StringVal ''" $
      parseString "'\"#~ '" @?= Right [SExp (Const (StringVal "\"#~ "))],
    testCase "string 'a\\'b\\\\c\\nd' - StringVal 'a'b\\c\nd'" $
@@ -103,7 +109,7 @@ numberTests = testGroup "number Tests"
      parseString "-10000" @?= Right [SExp (Const (IntVal (-10000)))],
    testCase "number '-45.0' - Error'" $
      parseString "-45.0" @?= Left "No valid parse",
-   testCase "number  +1 - Error" $
+   testCase "number +1 - Error" $
      parseString "+1" @?= Left "No valid parse",
    testCase "number 1 0 - Error" $
      parseString "1 0" @?= Left "No valid parse"]
@@ -142,19 +148,13 @@ factorOperTests = testGroup "factor Tests"
    testCase "factorOper 1//2 - Div 1 2" $
      parseString "1//2" @?= Right [SExp (Oper Div (Const (IntVal 1)) (Const (IntVal 2)))],
    testCase "factorOper 1%2 - Mod 1 2" $
-     parseString "1%2" @?= Right [SExp (Oper Minus (Const (IntVal 1)) (Const (IntVal 2)))],
+     parseString "1%2" @?= Right [SExp (Oper Mod (Const (IntVal 1)) (Const (IntVal 2)))],
    testCase "factorOper 1*2*3 - Times 1 Times 2 3" $
      parseString "1*2*3" @?= Right [SExp (Oper Times (Const (IntVal 1)) (Oper Times (Const (IntVal 2)) (Const (IntVal 3))))],
    testCase "factorOper 1//2//3 - Div 1 Div 2 3" $
      parseString "1//2//3" @?= Right [SExp (Oper Div (Const (IntVal 1)) (Oper Div (Const (IntVal 2)) (Const (IntVal 3))))],
    testCase "factorOper 1%2%3 - Mod 1 Mod 2 3" $
      parseString "1%2%3" @?= Right [SExp (Oper Mod (Const (IntVal 1)) (Oper Mod (Const (IntVal 2)) (Const (IntVal 3))))]]
-
-mixOperTests = testGroup "mix operations Tests"
-  [testCase "number 0 - IntVal 0" $
-     parseString "0" @?= Right [SExp (Const (IntVal 0))],
-   testCase "number -0 - IntVal 0" $
-     parseString "-0" @?= Right [SExp (Const (IntVal 0))]]
 
 commentTests = testGroup "spaceComment Tests"
   [testCase "No space for not" $
@@ -165,11 +165,13 @@ commentTests = testGroup "spaceComment Tests"
      parseString "# \n# \n# \n# \n# \n# \n# \n# \n# \n# \nx# \n# \n# \n# \n# \n# \n# \n# \n# \n# \n" @?= Right [SExp (Var "x")]]
 
 clauseTests = testGroup "clause Tests"
-  [testCase "for cluase y in z" $
+  [testCase "for clause no space xfor" $
+     parseString "[xfor y in z]" @?= Left "No valid parse",
+   testCase "for clause y in z" $
      parseString "[x for y in z]" @?= Right [SExp (Compr (Var "x") [CCFor "y" (Var "z")])],
-   testCase "for cluase y in (10+3)" $
+   testCase "for clause y in (10+3)" $
      parseString "[x for y in (10+3)]" @?= Right [SExp (Compr (Var "x") [CCFor "y" (Oper Plus (Const (IntVal 10)) (Const (IntVal 3)))])],
-   testCase "for cluase in if for list" $
+   testCase "for clause in if for list" $
      parseString "[x for y in z if u for a in []]" @?= Right [SExp (Compr (Var "x") [CCFor "y" (Var "z"),CCIf (Var "u"),CCFor "a" (List [])])],
    testCase "for clause with possible not keywoard" $
      parseString "[x for ynot in z]" @?= Right [SExp (Compr (Var "x") [CCFor "ynot" (Var "z")])],
@@ -185,7 +187,7 @@ callTests = testGroup "callTests Tests"
      parseString "f([2+y])" @?= Right [SExp (Call "f" [List [Oper Plus (Const (IntVal 2)) (Var "y")]])],
    testCase "Call of a list not expression and list" $
      parseString "f([not (z),[u]])" @?= Right [SExp (Call "f" [List [Not (Var "z"),List [Var "u"]]])],
-   testCase "Call of a list of values" $
+   testCase "Call of a list of values - not(z)" $
      parseString "f([False,2+y,not(z),[u]])" @?= Right [SExp (Call "f" [List [Const FalseVal,Oper Plus (Const (IntVal 2)) (Var "y"),Not (Var "z"),List [Var "u"]]])]]
 
 listTests = testGroup "list Tests"
@@ -194,7 +196,7 @@ listTests = testGroup "list Tests"
    testCase "list of empty list" $
      parseString "[[]]" @?= Right [SExp (List [List []])],
    testCase "list of var" $
-     parseString "[x]" @?= Right [SExp (Compr (Var "x") [CCFor "y" (Oper Plus (Const (IntVal 10)) (Const (IntVal 3)))])],
+     parseString "[x]" @?= Right [SExp (List [Var "x"])],
    testCase "list of number" $
      parseString "[23]" @?= Right [SExp (List [Const (IntVal 23)])],
    testCase "list of operation" $
