@@ -22,4 +22,8 @@ cabal.project.local~
 .HTF/
 .ghc.environment.*
 *.cabal
-*.yaml.lock
+*.yaml.lock  
+*.swp
+.DS_Store
+bin/configlet
+bin/configlet.exe
