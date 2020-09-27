@@ -6,13 +6,13 @@ add(z, N2, N2).
 add(s(N1), N2, N) :-  add(N1, s(N2), N).
 
 % mult(N1, N2, N)
-mult(z, N2, z).
+mult(z, _, z).
 mult(s(N1), N2, N) :- mult(N1, N2, N3), add(N2, N3, N).
 
 % comp(N1, N2, A)
 comp(z, z, eq).
-comp(s(N1), z, gt).
-comp(z, s(N1), lt).
+comp(s(_), z, gt).
+comp(z, s(_), lt).
 comp(s(N1), s(N2), A) :- comp(N1, N2, A).
 
 % insert(N, TI, TO)
