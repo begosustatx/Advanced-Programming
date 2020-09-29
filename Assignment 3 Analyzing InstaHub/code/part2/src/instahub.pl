@@ -51,16 +51,15 @@ followers(G, X, [person(N, F)|T], FS) :-
     different(G, X, F), 
     followers(G, X, T, FS).
 
-% checkFollowers(XF,FS) - HELPER FUNCTION
-checkFollowers([_|T], []).
-checkFollowers([], []).
-checkFollowers([H|T], FS) :-
-    memberPerson(H, FS),
-    selectPerson(FS, H, FS1),
-        checkFollowers(T, FS1).
+% personFollowers(XF,FS) - HELPER FUNCTION
+personFollowers([_|T], []).
+personFollowers([], []).
+personFollowers(F, [H|T]) :-
+    memberPerson(H, F),
+    personFollowers(F, T).
 
 % friendly(G, X)
-friendly(G, X) :- followers(G, X, G, FS), memberPerson(person(X, XF), G), checkFollowers(XF, FS).
+friendly(G, X) :- memberPerson(person(X, XF), G), followers(G, X, G, FS), personFollowers(XF, FS).
 
 % checkIgnores(G, XF,FS) - HELPER FUNCTION
 checkIgnores(G, [_|T], []).
@@ -77,10 +76,11 @@ hostile(G, X) :- followers(G, X, G, FS), memberPerson(person(X, XF), G), checkIg
 
 % aware(G, X, Y)
 aware(G, X, Y) :- follows(G, X, Y).
-aware(G, X, Y) :- follows(G, X, Z), selectPerson(G, person(X, _), G1), aware(G1, Z, Y).
+aware(G, X, Y) :- different(G, X, [Y]), follows(G, X, Z), selectPerson(G, person(X, _), G1), aware(G1, Z, Y).
 
 % ignorant(G, X, Y)
-ignorant(_, _, _).
+ignorant(G, X, Y) :- aware(G, X, Y).
+
 % aware, list, member of list
 
 %%% level 3 %%%
