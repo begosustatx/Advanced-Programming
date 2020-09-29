@@ -76,21 +76,52 @@ hostile(G, X) :- followers(G, X, G, FS), memberPerson(person(X, XF), G), checkIg
 aware(G, X, Y) :- follows(G, X, Y).
 aware(G, X, Y) :- different(G, X, [Y]), follows(G, X, Z), selectPerson(G, person(X, _), G1), aware(G1, Z, Y).
 
-% ignorant(G, X, Y)
-ignorant(G, X, Y) :- aware(G, X, Y).
+% awareness(G, X, NG, L)
+awareness(_, X, [], []).
+awareness(G, X, [person(N, _)|T], L) :- aware(G, X, N), appendPerson([N], FF, L), awareness(G, X, T, FF).
+awareness(G, X, [person(N, F)|T], L) :- different(G, X, F), awareness(G, X, T, L).
 
-% aware, list, member of list
+% ignorant(G, X, Y)
+ignorant(G, X, Y) :- awareness(G, X, G, L), different(G, Y, L).
 
 %%% level 3 %%%
 
+% permutationWorld(G, H)
+permutationWorld([],[]).
+permutationWorld([H|T], S) :- permutationWorld(T, P), appendPerson(X, Y, P), appendPerson(X, [H|Y], S).
+
 % makePair(G, H, K) - HELPER FUNCTION
-makePair([person(G, _)], [person(H, _)], p(G,H)).
+makePair([person(G, _)], [person(H, _)], [p(G,H)]).
+makePair([person(G, _)|T], [person(H, _)|TT], K) :- appendPerson([p(G,H)], KK, K), makePair(T, TT, KK).
+
+% findPersonName(X, K, Y)
+findPersonName(X, K, Y) :- memberPerson(p(X,Y), K).
+
+% findNewFollower(XF, K, L)
+findNewFollower([], K, []).
+findNewFollower([H|T], K, L) :- 
+    findPersonName(H, K, Y), 
+    appendPerson([Y], LL, L), 
+    findNewFollower(T, K, LL).
+
+% replaceGraph(X, K, G)
+replaceGraph([], _, []).
+replaceGraph([person(X, XF)| T], K, G) :- findPersonName(X, K, Y),
+                                      findNewFollower(XF, K, L),        
+                                      appendPerson([person(Y, L)], NG, G), 
+                                      replaceGraph(T, K, NG).   
+% compareGraph(H, F)
+compareGraph([], _).
+compareGraph([person(N,L)|T], F) :- permutationWorld(L, NL),
+                                    memberPerson(person(N,NL), F),
+                                    compareGraph(T, F). 
 
 % same_world(G, H, K)
-% same_world([person(G, _)], [person(H, _)], p(G,H)).
-same_world([], [], K).
-same_world(G, H, []) :-  selectPerson(G, person(X, _), G1), selectPerson(H, person(Y, _), H1), appendPerson([p(X,Y)], [], K), same_world(G1, H1, K).
-same_world(G, H, K) :-  selectPerson(G, person(X, _), G1), selectPerson(H, person(Y, _), H1), appendPerson([p(X,Y)], K, K1), same_world(G1, H1, K1).
+same_world([], [], []).
+same_world(G, H, K) :- permutationWorld(H, HH),
+                       makePair(G, HH, K),
+                       replaceGraph(G, K, NG),
+                       compareGraph(NG, H).
 
 % optional!
 % different_world(G, H)
