@@ -17,7 +17,6 @@ g2([person(batman, [green_arrow, superman]),
 
 :- begin_tests(instahub).
 
-
 % memberPerson(X, L)
 test(memberPerson1, (nondet)) :-
     memberPerson(bruce, [clark,oliver,bruce]).
@@ -30,7 +29,6 @@ test(memberPerson3, (fail)) :-
 
 test(memberPerson4, [set(X==[barry,oliver,bruce,kara])]) :-
     memberPerson(X, [barry,oliver,bruce,kara]).
-
 
 % appendPerson(L1, L2, L3)
 test(appendPerson1, (nondet)) :-
@@ -106,7 +104,6 @@ test(different3, [set(X == [kara, bruce, barry,oliver])]) :-
      g1(G), different(G, X,[clark]).
 
 % ignores(G, X, Y)
-
 test(ignores1, [nondet]) :-
     g1(G), ignores(G, clark, bruce).
 
@@ -123,13 +120,12 @@ test(ignores5, [set(Y == [oliver])]) :-
     g1(G), ignores(G, kara, Y).
 
 test(ignores6, [fail]) :-
-    g1(G), ignores(G, Y, kara).
+    g1(G), ignores(G, _Y, kara).
 
 test(ignores7, [set(Y == [kara])]) :-
     g1(G), ignores(G, Y, oliver).
 
 % mutualFollow(G, X, L)
-
 test(mutualFollow1, [nondet]) :-
     g1(G), mutualFollow(G, kara, [barry,clark]).
 
@@ -140,10 +136,9 @@ test(mutualFollow3, [set( X==[barry,clark])]) :-
     g1(G), mutualFollow(G, X, [kara]).
 
 test(mutualFollow4, [fail]) :-
-    g1(G), mutualFollow(G, X, [oliver]).
+    g1(G), mutualFollow(G, _X, [oliver]).
 
 % popular(G, X)
-
 test(popular1, [fail]) :-
     g1(G), popular(G, oliver).
 
@@ -153,11 +148,9 @@ test(popular2, [nondet]) :-
 test(popular3, [set( X==[kara])]) :-
     g1(G), popular(G, X).
 
-
-% I DONT KNOW HOW THE FUCK TO TEST IT
-% unFollow(G, X, L)
-% test(unFollow1, [nondet]) :-
-%    g1(G), unFollow(G, oliver,[clark,barry,bruce]).
+% ignoresFollow(G, X, L)
+test(ignoresFollow1, [fail]) :-
+    g1(G), ignoresFollow(G, oliver,[clark,barry,bruce]).
 
 % outcast(G, X)
 test(outcast1, [nondet]) :-
@@ -170,7 +163,6 @@ test(outcast3, [set( Y ==[bruce,oliver])]) :-
     g1(G), outcast(G, Y).
 
 % followers(G, X, NG, FS)
-
 test(followers1, [nondet]) :-
     g1(G), followers(G, kara,G,[barry, clark, oliver]).
 
@@ -180,13 +172,12 @@ test(followers2, [fail]) :-
 test(followers3, [set( X==[oliver])]) :-
     g1(G), followers(G, X ,G, [bruce, barry, clark]).
 
-
 % checkFollowers(L1,L2)
 test(checkFollowers1, [nondet]) :-
-    g1(G), checkFollowers([bruce, barry, clark],[barry, clark]).
+    checkFollowers([bruce, barry, clark],[barry, clark]).
 
 test(checkFollowers2, [fail]) :-
-    g1(G), checkFollowers([clark],[barry, clark]).
+    checkFollowers([clark],[barry, clark]).
 
 % friendly(G, X)
 test(friendly1, [nondet]) :-
@@ -220,33 +211,32 @@ test(aware2, [fail]) :-
     g1(G), aware(G,kara,bruce).
 
 % awareness(G,G,X,L) %
-test(awareness1, [nondet]) :-
-    g1(G), awareness(G,G,bruce,[kara, barry, clark, oliver]).
+test(awareness1, [fail]) :-
+    g1(G), awareness(G,[bruce],[],[kara, barry, clark, oliver]).
 
 test(awareness2, [fail]) :-
-    g1(G), awareness(G,G,kara,[]).
+    g1(G), awareness(G,[kara],[],[]).
 
 % ignorant(G, X, Y)
-test(ignorant1, [nondet]) :-
-    g1(G), ignorant(G,bruce,bruce).
+test(ignorant1, [fail]) :-
+    g1(G), ignorant(G, bruce, bruce).
 
-% NOT WORKING
-% test(ignorant2, [fail]) :-
-    %g1(G), ignorant(G,kara,bruce).
+test(ignorant2, [nondet]) :-
+    g1(G), ignorant(G, kara, bruce).
 
-% myPermutation(L1,L2).
-test(myPermutation1, [nondet]) :-
-    myPermutation([kara,bruce],[kara,bruce]).
+% permutationWorld(L1,L2).
+test(permutationWorld1, [nondet]) :-
+    permutationWorld([kara,bruce], [kara,bruce]).
 
-test(myPermutation2, [nondet]) :-
-    myPermutation([kara,bruce],[bruce,kara]).
+test(permutationWorld2, [nondet]) :-
+    permutationWorld([kara,bruce], [bruce,kara]).
 
-% makePair(G, H, K) 
-test(makePair1, [nondet]) :-
-    g1(G),g2(H),makePair(G,H,[p(kara, batman), p(bruce, green_arrow), p(barry, supergirl), p(clark, flash), p(oliver, superman)] ).
+% makePersonPair(G, H, K) 
+test(makePersonPair1, [nondet]) :-
+    g1(G),g2(H),makePersonPair(G,H,[p(kara, batman), p(bruce, green_arrow), p(barry, supergirl), p(clark, flash), p(oliver, superman)] ).
 
-test(makePair1, [fail]) :-
-    g1(G),g2(H),makePair(G,H,[] ).
+test(makePersonPair1, [fail]) :-
+    g1(G),g2(H),makePersonPair(G,H,[] ).
 
 % findPersonName(X,K,Y)
 test(findPersonName1, [nondet]) :-
