@@ -62,12 +62,10 @@ personFollowers(F, [H|T]) :-
 friendly(G, X) :- memberPerson(person(X, XF), G), followers(G, X, G, FS), personFollowers(XF, FS).
 
 % checkIgnores(G, XF,FS) - HELPER FUNCTION
-checkIgnores(G, [_|T], []).
-checkIgnores(G, [], []).
+checkIgnores(G, [], FS).
 checkIgnores(G, [H|T], FS) :-
     different(G, H, FS),
-    selectPerson(FS, H, FS1),
-        checkFollowers(G, T, FS1).
+    checkIgnores(G, T, FS).
 
 % hostile(G, X)
 hostile(G, X) :- followers(G, X, G, FS), memberPerson(person(X, XF), G), checkIgnores(G, XF, FS).
