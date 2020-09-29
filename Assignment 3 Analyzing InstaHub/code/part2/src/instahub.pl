@@ -41,30 +41,58 @@ unFollow(G, X, [H|T]) :- ignores(G, H, X), unFollow(G, X, T).
 % outcast(G, X)
 outcast(G, X) :- memberPerson(person(X, X1), G), unFollow(G, X, X1).
 
+% followers(G, X, NG, FS) - HELPER FUNCTION
+followers(G, X, [], []).
+followers(G, X, [person(N, F)|T], FS) :- 
+    follows(G, N, X),
+    appendPerson([N], FF, FS),
+    followers(G, X, T, FF).
+followers(G, X, [person(N, F)|T], FS) :- 
+    different(G, X, F), 
+    followers(G, X, T, FS).
+
+% checkFollowers(XF,FS) - HELPER FUNCTION
+checkFollowers([_|T], []).
+checkFollowers([], []).
+checkFollowers([H|T], FS) :-
+    memberPerson(H, FS),
+    selectPerson(FS, H, FS1),
+        checkFollowers(T, FS1).
+
 % friendly(G, X)
-friendly([], _).
-friendly(G, X) :- follows(G, Y, X), selectPerson(G, person(Y, _), G1), follows(G, X, Y), friendly(G1,X).
+friendly(G, X) :- followers(G, X, G, FS), memberPerson(person(X, XF), G), checkFollowers(XF, FS).
+
+% checkIgnores(G, XF,FS) - HELPER FUNCTION
+checkIgnores(G, [_|T], []).
+checkIgnores(G, [], []).
+checkIgnores(G, [H|T], FS) :-
+    different(G, H, FS),
+    selectPerson(FS, H, FS1),
+        checkFollowers(G, T, FS1).
 
 % hostile(G, X)
-hostile([], _).
-hostile(G, X) :- memberPerson(person(Y,_), G), selectPerson(G, person(Y, _), G1), ignores(G, Y, X), follows(G, X, Y), hostile(G1, X).
+hostile(G, X) :- followers(G, X, G, FS), memberPerson(person(X, XF), G), checkIgnores(G, XF, FS).
 
 %%% level 2 %%%
 
-% chainFollow(G, L, Y) - HELPER FUNCTION
-chainFollow(G, [H|T], Y) :- follows(G, H, Y), chainFollow(G, T, Y). 
-
 % aware(G, X, Y)
 aware(G, X, Y) :- follows(G, X, Y).
-aware(G, X, Y) :- memberPerson(person(X, L), G), chainFollow(G, L, Y).
+aware(G, X, Y) :- follows(G, X, Z), selectPerson(G, person(X, _), G1), aware(G1, Z, Y).
 
 % ignorant(G, X, Y)
 ignorant(_, _, _).
+% aware, list, member of list
 
 %%% level 3 %%%
 
+% makePair(G, H, K) - HELPER FUNCTION
+makePair([person(G, _)], [person(H, _)], p(G,H)).
+
 % same_world(G, H, K)
-same_world(G, H, K) :-  selectPerson(G, person(X, _), G1), selectPerson(H, person(Y, _), H1), appendPerson([p(X,Y)], [], K), same_world(G1, H1, K).
+% same_world([person(G, _)], [person(H, _)], p(G,H)).
+same_world([], [], K).
+same_world(G, H, []) :-  selectPerson(G, person(X, _), G1), selectPerson(H, person(Y, _), H1), appendPerson([p(X,Y)], [], K), same_world(G1, H1, K).
+same_world(G, H, K) :-  selectPerson(G, person(X, _), G1), selectPerson(H, person(Y, _), H1), appendPerson([p(X,Y)], K, K1), same_world(G1, H1, K1).
 
 % optional!
 % different_world(G, H)
