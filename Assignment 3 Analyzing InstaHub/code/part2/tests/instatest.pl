@@ -17,56 +17,56 @@ g2([person(batman, [green_arrow, superman]),
 
 :- begin_tests(instahub).
 
-% memberPerson(X, L)
-test(memberPerson1, (nondet)) :-
-    memberPerson(bruce, [clark,oliver,bruce]).
+% myMember(X, L)
+test(myMember1, (nondet)) :-
+    myMember(bruce, [clark,oliver,bruce]).
 
-test(memberPerson2, (fail)) :-
-    memberPerson(bruce, [clark,oliver]).
+test(myMember2, (fail)) :-
+    myMember(bruce, [clark,oliver]).
 
-test(memberPerson3, (fail)) :-
-    memberPerson(bruce, []).
+test(myMember3, (fail)) :-
+    myMember(bruce, []).
 
-test(memberPerson4, [set(X==[barry,oliver,bruce,kara])]) :-
-    memberPerson(X, [barry,oliver,bruce,kara]).
+test(myMember4, [set(X==[barry,oliver,bruce,kara])]) :-
+    myMember(X, [barry,oliver,bruce,kara]).
 
-% appendPerson(L1, L2, L3)
-test(appendPerson1, (nondet)) :-
-    appendPerson([clark], [oliver,bruce],[clark,oliver,bruce]).
+% myAppend(L1, L2, L3)
+test(myAppend1, (nondet)) :-
+    myAppend([clark], [oliver,bruce],[clark,oliver,bruce]).
 
-test(appendPerson2, (nondet)) :-
-    appendPerson([], [oliver,bruce],[oliver,bruce]).
+test(myAppend2, (nondet)) :-
+    myAppend([], [oliver,bruce],[oliver,bruce]).
 
-test(appendPerson3, (nondet)) :-
-    appendPerson([oliver,bruce],[],[oliver,bruce]).
+test(myAppend3, (nondet)) :-
+    myAppend([oliver,bruce],[],[oliver,bruce]).
 
-test(appendPerson4, (nondet)) :-
-    appendPerson([],[],[]).
+test(myAppend4, (nondet)) :-
+    myAppend([],[],[]).
 
-test(appendPerson5, (fail)) :-
-    appendPerson([oliver,bruce,mark],[],[oliver,bruce]).
+test(myAppend5, (fail)) :-
+    myAppend([oliver,bruce,mark],[],[oliver,bruce]).
 
-test(appendPerson6, (fail)) :-
-    appendPerson([oliver,bruce],[],[mark,oliver,bruce]).
+test(myAppend6, (fail)) :-
+    myAppend([oliver,bruce],[],[mark,oliver,bruce]).
 
-test(appendPerson7, (fail)) :-
-    appendPerson([oliver,bruce],[mark],[oliver,bruce]).
+test(myAppend7, (fail)) :-
+    myAppend([oliver,bruce],[mark],[oliver,bruce]).
 
-test(appendPerson8, X=[barry,oliver,bruce,kara]) :-
-    appendPerson([barry,oliver,bruce],[kara],X).
+test(myAppend8, X=[barry,oliver,bruce,kara]) :-
+    myAppend([barry,oliver,bruce],[kara],X).
 
-% selectPerson(L1, X, L2)
-test(selectPerson1, (nondet)) :-
-    selectPerson([clark,oliver], oliver,[clark]).
+% mySelect(L1, X, L2)
+test(mySelect1, (nondet)) :-
+    mySelect([clark,oliver], oliver,[clark]).
 
-test(selectPerson2, (fail)) :-
-    selectPerson([mark,oliver], oliver,[mark,oliver]).
+test(mySelect2, (fail)) :-
+    mySelect([mark,oliver], oliver,[mark,oliver]).
 
-test(selectPerson4, (nondet)) :-
-    selectPerson([mark], mark,[]).
+test(mySelect3, (nondet)) :-
+    mySelect([mark], mark,[]).
 
-test(selectPerson4, (fail)) :-
-    selectPerson([mark], oliver,[]).
+test(mySelect4, (fail)) :-
+    mySelect([mark], oliver,[]).
 
 % follows(G, X, Y)
 test(follows1, [nondet]) :-
