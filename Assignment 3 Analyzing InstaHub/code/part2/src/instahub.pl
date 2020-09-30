@@ -109,9 +109,9 @@ ignorant(G, X, Y) :-  different(G,X,[Y]),
 
 %%% level 3 %%%
 
-% permutationWorld(G, H) - HELPER FUNCTION
-permutationWorld([],[]).
-permutationWorld([H|T], S) :- permutationWorld(T, P), myAppend(X, Y, P), myAppend(X, [H|Y], S).
+% myPermutation(G, H) - HELPER FUNCTION
+myPermutation([],[]).
+myPermutation([H|T], S) :- myPermutation(T, P), myAppend(X, Y, P), myAppend(X, [H|Y], S).
 
 % makePersonPair(G, H, K) - HELPER FUNCTION
 makePersonPair([person(G, _)], [person(H, _)], [p(G,H)]).
@@ -135,13 +135,13 @@ replaceGraph([person(X, XF)| T], K, G) :- findPersonName(X, K, Y),
 
 % compareGraph(H, F) - HELPER FUNCTION
 compareGraph([], _).
-compareGraph([person(N,L)|T], F) :- permutationWorld(L, NL),
+compareGraph([person(N,L)|T], F) :- myPermutation(L, NL),
                                     myMember(person(N,NL), F),
                                     compareGraph(T, F). 
 
 % same_world(G, H, K)
 same_world([], [], []).
-same_world(G, H, K) :- permutationWorld(H, HH),
+same_world(G, H, K) :- myPermutation(H, HH),
                        makePersonPair(G, HH, K),
                        replaceGraph(G, K, NG),
                        compareGraph(NG, H).

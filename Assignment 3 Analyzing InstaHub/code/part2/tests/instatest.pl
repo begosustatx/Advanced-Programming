@@ -224,12 +224,12 @@ test(ignorant1, [fail]) :-
 test(ignorant2, [nondet]) :-
     g1(G), ignorant(G, kara, bruce).
 
-% permutationWorld(L1,L2).
-test(permutationWorld1, [nondet]) :-
-    permutationWorld([kara,bruce], [kara,bruce]).
+% myPermutation(L1,L2).
+test(myPermutation1, [nondet]) :-
+    myPermutation([kara,bruce], [kara,bruce]).
 
-test(permutationWorld2, [nondet]) :-
-    permutationWorld([kara,bruce], [bruce,kara]).
+test(myPermutation2, [nondet]) :-
+    myPermutation([kara,bruce], [bruce,kara]).
 
 % makePersonPair(G, H, K) 
 test(makePersonPair1, [nondet]) :-
