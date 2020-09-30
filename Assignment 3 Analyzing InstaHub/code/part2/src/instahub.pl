@@ -45,7 +45,7 @@ popular(G, X) :- myMember(person(X, Y), G),
 % ignoresFollow(G, X, L) - HELPER FUNCTION
 ignoresFollow(_, _, []).
 ignoresFollow(G, X, [H|T]) :- ignores(G, H, X), 
-                         ignoresFollow(G, X, T). 
+                             ignoresFollow(G, X, T). 
 
 % outcast(G, X)
 outcast(G, X) :- myMember(person(X, F), G), 
