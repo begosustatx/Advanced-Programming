@@ -1,5 +1,5 @@
 -module(warmup).
--export([move/2, insert/2, lookup/2]).
+-export([move/2, insert/3, lookup/2]).
 
 % direction is one of the atoms north, south, east or west
 
@@ -34,11 +34,11 @@ move(south_west, {X, Y}) -> {X-1, Y-1}.
 
 %insert(Key, Value, Tree) -> undefined.
 % complete the definition.
-insert({K, V}, leaf) -> {node, K, V, leaf, leaf};
-insert({K, V}, {node, NodeK, NodeV, Left, Right}) ->
+insert(K, V, leaf) -> {node, K, V, leaf, leaf};
+insert(K, V, {node, NodeK, NodeV, Left, Right}) ->
   if K == NodeK -> {node, K, V, Left, Right}  
-   ; K <  NodeK -> {node, NodeK, NodeV, insert({K, V}, Left), Right}
-   ; K >  NodeK ->{node, NodeK, NodeV, Left, insert({K, V}, Right)}
+   ; K <  NodeK -> {node, NodeK, NodeV, insert(K, V, Left), Right}
+   ; K >  NodeK ->{node, NodeK, NodeV, Left, insert(K, V, Right)}
   end.
 
 % lookup find the value associated to a key in a binary search
@@ -71,9 +71,9 @@ lookup(K, {node, NodeK, NodeV, Left, Right}) ->
 % error south, warmup:move(south_west, {0,0}).
 
 %% insert/2 %%
-% {node,0,"Begona",leaf,leaf}, warmup:insert({0,"Begona"},leaf). 
-% {node,1,"Begona",leaf,leaf}, warmup:insert({1,"Begona"},{node,1,"Marko",leaf, leaf}).
-% warmup:insert({0,"Begona"},{node,1,"Marko",leaf,{node,2,"Robert",leaf,leaf}}).  
+% {node,0,"Begona",leaf,leaf}, warmup:insert(0,"Begona",leaf). 
+% {node,1,"Begona",leaf,leaf}, warmup:insert(1,"Begona",{node,1,"Marko",leaf, leaf}).
+% warmup:insert(0,"Begona",{node,1,"Marko",leaf,{node,2,"Robert",leaf,leaf}}).  
 %{node,{1,"Marko"},
 %      {node,0,"Begona",leaf,leaf},
 %      {node,2,"Robert",leaf,leaf}}
