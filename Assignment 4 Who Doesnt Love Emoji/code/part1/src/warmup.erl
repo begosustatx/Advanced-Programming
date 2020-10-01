@@ -1,5 +1,5 @@
 -module(warmup).
--export([]).
+-export([move/2, insert/2, lookup/2]).
 
 % direction is one of the atoms north, south, east or west
 
