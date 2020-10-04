@@ -50,7 +50,7 @@ insert(K, V, {node, NodeK, NodeV, Left, Right}) ->
 
 lookup(_, leaf) -> none;
 lookup(K, {node, NodeK, NodeV, Left, Right}) -> 
-  if K == NodeK -> {ok, NodeV}  % replace or keep original??
+  if K == NodeK -> {ok, NodeV}
    ; K <  NodeK -> lookup(K, Left)
    ; K >  NodeK -> lookup(K, Right)
   end.
