@@ -34,7 +34,7 @@ lookup(E, Short) ->
     request_reply(E,{lookup, Short}).
 
 analytics(E, Short, Fun, Label, Init) -> 
-    request_reply(E,{stop}).
+    request_reply(E,{analytics, Short, Fun, Label, Init}).
 
 get_analytics(_, _) -> not_implemented.
 
@@ -71,11 +71,18 @@ deleteEmo(E1,[{S2,E2,A}|T]) ->
         E1/=E2 -> [{S2,E2,A}|deleteEmo(E1,T)]
     end.
 
-search(S1,[]) -> not_found;
+search(_,[]) -> not_found;
 search(S1,[{S2,E2,A}|T]) ->
     if  S1==S2 -> {E2, A};
         S1/=S2 -> search(S1,T)
     end.
+
+addAnalytics(_,_,[])->[];
+addAnalytics(Emo, A, [{S1,E1,A1}|T])->
+	if 	Emo == E1 ->[{S1,E1,[A1|A]}|addAnalytics(Emo,A,T)];
+		Emo /= E1 -> [{S1,E1,A}|addAnalytics(Emo,A,T)]
+	end.	
+
 
 loop(Initial) ->
     receive
@@ -129,6 +136,24 @@ loop(Initial) ->
             From ! {self(), Res},
             loop(Initial);
 
-        {From, {stop}}-> From ! {self(), ok}
+        {From, {stop}}-> From ! {self(), ok};
+
+        {From,{analytics, Short, Fun, Label, Init}} ->
+        	Found = search(Short,Initial),
+            if  Found==not_found ->
+                    From ! {self(),{error, "The shortcode"++Short++"doesnt exist"}},
+                    loop(Initial);
+                Found/=not_found ->
+					{E1,A1} = Found,
+					LabelFound = search(Label, A1),
+					if 	LabelFound ==not_found -> 
+							NewInitial = addAnalytics(E1, {Label,Fun,Init},Initial), 
+							From ! {self(), ok},
+							loop(NewInitial);
+						LabelFound /= not_found -> 
+							From ! {self(),{error, "The Label"++Label++"is already registered"}},
+                    		loop(Initial)
+					end
+            end
 
     end.
