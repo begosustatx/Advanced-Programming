@@ -10,8 +10,8 @@ testsuite() ->
     [ {"Basic behaviour", spawn,
         [ test_start_server(), 
           test_new_shortcode(),
-          %test_delete(),
-          %test_alias(),
+          test_delete(),
+          test_alias(),
           test_lookup() ] } ].
 
 test_start_server() ->
@@ -84,13 +84,15 @@ test_delete() ->
     fun () ->
         Initial = [],
         {ok, S} = emoji:start(Initial),
-        emoji:delete(S, "smiley")
+        emoji:delete(S, "smiley"),
+        ?assertEqual(no_emoji, emoji:lookup(S, "smiley"))     
     end },
     {"Delete shortcode from one unique value Initial",
     fun () ->
         Initial = [{"smiley", <<240, 159, 152, 131>>}],
         {ok, S} = emoji:start(Initial),
-        emoji:delete(S, "smiley")
+        emoji:delete(S, "smiley"),
+        ?assertEqual(no_emoji, emoji:lookup(S, "smiley"))
     end }].
 
 test_alias() -> 
@@ -104,7 +106,7 @@ test_alias() ->
     fun () ->
       Initial = [{"smiley", <<240, 159, 152, 131>>}],
       {ok, S} = emoji:start(Initial),
-      ?assertMatch({ok, _}, emoji:alias(S, "smiley", "other_smiley"))
+      ?assertMatch(ok, emoji:alias(S, "smiley", "other_smiley"))
     end },
     {"Alias of shortcode 2 which exists",
     fun () ->
@@ -116,7 +118,7 @@ test_alias() ->
     fun () ->
       Initial = [{"smiley", <<240, 159, 152, 131>>},{"other_smiley", <<240, 159, 152, 131>>}],
       {ok, S} = emoji:start(Initial),
-      ?assertMatch({ok, _}, emoji:alias(S, "other_smiley", "cute_smiley"))
+      ?assertMatch(ok, emoji:alias(S, "other_smiley", "cute_smiley"))
     end }].
 
 test_lookup() -> 
