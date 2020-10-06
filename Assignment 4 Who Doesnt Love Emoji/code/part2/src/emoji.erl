@@ -36,9 +36,11 @@ lookup(E, Short) ->
 analytics(E, Short, Fun, Label, Init) -> 
     request_reply(E,{analytics, Short, Fun, Label, Init}).
 
-get_analytics(_, _) -> not_implemented.
+get_analytics(E, Short) ->
+    request_reply(E,{get_analytics, Short}).
 
-remove_analytics(_, _, _) -> not_implemented.
+remove_analytics(E, Short, Label) ->
+    nonblocking(E,{remove_analytics, Short, Label}).
 
 stop(E) -> 
     request_reply(E,{stop}).
@@ -61,20 +63,20 @@ checkUnique([{S,_}|T]) ->
 
 deleteShort(_,[])->[];
 deleteShort(S1,[{S2,E2,Al,A}|T]) ->
-    if  S1==S2 -> deleteShort(S1,T);
+    if  S1==S2 -> T;
         S1/=S2 -> [{S2,E2,Al,A}|deleteShort(S1,T)]
     end.
 
-search(_,[]) -> not_found;
-search(S1,[{S2,E2,Al,A}|T]) ->
+searchShortcode(_,[]) -> not_found;
+searchShortcode(S1,[{S2,E2,Al,A}|T]) ->
     if  S1==S2 -> {E2,Al,A};
-        S1/=S2 -> search(S1,T)
+        S1/=S2 -> searchShortcode(S1,T)
     end.
 
-searchInAliases(_,[]) -> not_found;
-searchInAliases(S1,[A|T]) ->
-    if  S1==A -> found;
-        S1/=A -> search(S1,T)
+searchLabel(_,[]) -> not_found;
+searchLabel(L1,[{L,F,I}|T]) ->
+    if  L1==L -> found;
+        L1/=L -> searchLabel(L1,T)
     end.
 
 addAlias(_,_,[])->[];
@@ -99,12 +101,36 @@ checkRegistered(S,[{S1,E1,Al,An}|T]) ->
                end
     end.
 
-loop(Initial) ->
+addAnalytics(_,_,[])->[];
+addAnalytics(S, A, [{S1,E1,Al,An}|T]) ->
+	if 	S == S1 ->[{S1,E1,Al,[A|An]}|T];
+		S /= S1 -> [{S1,E1,Al,An}|addAnalytics(S,A,T)]
+	end.
 
-%    io:fwrite("Initial : ~w", [Initial])
+createStat([]) -> [];
+createStat([{L, _, I}|T]) ->
+    [{L, I}|createStat(T)].
+
+
+removeAnalytics(_,_,[])->[];
+removeAnalytics(S1,L, [{S2,E2,Al,An}|T]) ->
+    if  S1==S2 -> 
+        A = removeLabel(L, An),
+        [{S2,E2,Al,A}|T];
+        S1/=S2 -> [{S2,E2,Al,An}|removeAnalytics(S1,L,T)]
+    end.
+
+removeLabel(_,[])->[];
+removeLabel(L1, [{L2,F,I}|T]) ->
+    if  L1==L2 -> T;
+        L1/=L2 -> [{L2,F,I}|removeLabel(L1,T)]
+    end.
+
+loop(Initial) ->
+    io:fwrite("Initial : ~w", [Initial]),
     receive
         {From, {new, {S1,E1}}} ->
-            Found = search(S1,Initial),
+            Found = searchShortcode(S1,Initial),
             if  Found /= not_found ->
                     From ! {self(),{error, "The shortcode 1 already exists"}},
                     loop(Initial);
@@ -121,7 +147,7 @@ loop(Initial) ->
             end;
             
     {From, {alias, {S1,S2}}} ->
-            Found = search(S1,Initial),
+            Found = searchShortcode(S1,Initial),
             if  Found==not_found ->
                     ShortCode = getShortcodeForAlias(S1,Initial),
                     if ShortCode == no_shortcode ->
@@ -146,7 +172,7 @@ loop(Initial) ->
                             loop(Initial);
                        Registered == not_registered ->     
                             {E1, Al, A} = Found,
-                            FoundAlias = search(S2,Al),
+                            FoundAlias = searchShortcode(S2,Al),
                             if  FoundAlias /= not_found ->
                                     From ! {self(),{error, "The shortcode 3 already exist"}},
                                     loop(Initial);
@@ -160,7 +186,7 @@ loop(Initial) ->
             end;
 
         {delete, S1} ->
-            Found = search(S1,Initial),
+            Found = searchShortcode(S1,Initial),
             if  Found == not_found ->
                     ShortCode = getShortcodeForAlias(S1, Initial),
                     if ShortCode == no_shortcode ->
@@ -177,7 +203,7 @@ loop(Initial) ->
             end;
 
         {From, {lookup, S1}} ->                       
-            Found = search(S1,Initial),
+            Found = searchShortcode(S1,Initial),
             if  Found == not_found ->
                     ShortCode = getShortcodeForAlias(S1, Initial),
                     if ShortCode == no_shortcode ->
@@ -196,20 +222,64 @@ loop(Initial) ->
         {From, {stop}}-> From ! {self(), ok};
 
         {From,{analytics, Short, Fun, Label, Init}} ->
-        	Found = search(Short,Initial),
+        	Found = searchShortcode(Short,Initial),
             if  Found==not_found ->
-                    From ! {self(),{error, "The shortcode"++Short++"doesnt exist"}},
-                    loop(Initial);
+                    ShortCode = getShortcodeForAlias(Short, Initial),
+                    if ShortCode == no_shortcode ->
+                            From ! {self(),{error, "The shortcode"++Short++"doesnt exist"}},
+                            loop(Initial);
+                       ShortCode /= no_shortcode ->
+                                {S, _, _, _} = ShortCode, 
+                                NewInitial = addAnalytics(S, {Label,Fun,Init}, Initial),
+                                From ! {self(), ok},
+                                loop(NewInitial) 
+                    end;
                 Found/=not_found ->
-					{E1,A1} = Found,
-					LabelFound = search(Label, A1),
-					if 	LabelFound ==not_found -> 
-							%NewInitial = addAnalytics(E1, {Label,Fun,Init},Initial), 
+					{_,_,An} = Found,
+					LabelFound = searchLabel(Label, An),
+					if 	LabelFound == not_found -> 
+							NewInitial = addAnalytics(Short, {Label,Fun,Init}, Initial), 
 							From ! {self(), ok},
-							loop(Initial);
+							loop(NewInitial);
 						LabelFound /= not_found -> 
-							From ! {self(),{error, "The Label"++Label++"is already registered"}},
+							From ! {self(),{error, "The Label "++Label++" is already registered"}},
                     		loop(Initial)
 					end
+            end;
+        
+        {From, {get_analytics, Short}} ->
+            Found = searchShortcode(Short,Initial),
+            if  Found==not_found ->
+                    ShortCode = getShortcodeForAlias(Short, Initial),
+                    if ShortCode == no_shortcode ->
+                            From ! {self(),{error, "The shortcode "++Short++" doesnt exist"}},
+                            loop(Initial);
+                       ShortCode /= no_shortcode ->
+                                {_, _, _, An} = ShortCode, 
+                                Stat = createStat(An),
+                                From ! {self(), {ok, Stat}},
+                                loop(Initial) 
+                    end;
+                Found/=not_found ->
+					{_,_,An} = Found,
+					Stat = createStat(An),
+					From ! {self(), {ok, Stat}},
+					loop(Initial)
+            end;
+        
+        {remove_analytics, Short, Label} ->
+            Found = searchShortcode(Short,Initial),
+            if  Found==not_found ->
+                    ShortCode = getShortcodeForAlias(Short, Initial),
+                    if ShortCode == no_shortcode ->
+                            loop(Initial);
+                       ShortCode /= no_shortcode ->
+                                {S1, _, _, _} = ShortCode, 
+                                NewInitial = removeAnalytics(S1, Label, Initial),
+                                loop(NewInitial) 
+                    end;
+                Found/=not_found ->
+					NewInitial = removeAnalytics(Short, Label, Initial),
+                    loop(NewInitial) 
             end
     end.
