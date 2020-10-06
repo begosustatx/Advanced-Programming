@@ -5,6 +5,7 @@
          stop/1]).
 
 -compile(export_all).
+hit(_,N)->N+1.
 
 -type shortcode() :: string().
 -type emoji() :: binary().
@@ -126,6 +127,18 @@ removeLabel(L1, [{L2,F,I}|T]) ->
         L1/=L2 -> [{L2,F,I}|removeLabel(L1,T)]
     end.
 
+runAnalytics(S,[]) -> [];
+runAnalytics(S,[{L,F,I}|T]) ->
+    Res = F(S,I),
+    [{L,F,Res}|runAnalytics(S,T)].
+
+updateAnalytics(_, _, []) -> [];
+updateAnalytics(S1, NewAn, [{S2,E2,Al,An}|T]) ->
+    if  S1==S2 -> [{S2,E2,Al,NewAn}|T];
+        S1/=S2 -> [{S2,E2,Al,An}|updateAnalytics(S1,NewAn,T)]
+    end.
+
+
 loop(Initial) ->
     io:fwrite("Initial : ~w", [Initial]),
     receive
@@ -207,17 +220,22 @@ loop(Initial) ->
             if  Found == not_found ->
                     ShortCode = getShortcodeForAlias(S1, Initial),
                     if ShortCode == no_shortcode ->
-                                Res = no_emoji;
+                                From ! {self(), no_emoji},
+                                loop(Initial);
                        ShortCode /= no_shortcode ->
-                                {_, E1, _, _} = ShortCode, 
-                                Res = {ok, E1}
+                                {S, E1, _, An} = ShortCode,
+                                NewAn = runAnalytics(S1, An), 
+                                NewInitial = updateAnalytics(S, NewAn, Initial),
+                                From ! {self(), {ok, E1}},
+                                loop(NewInitial)
                     end;
                 Found /= not_found ->
-                    {E1, _, _} = Found, 
-                    Res = {ok, E1}
-            end,
-            From ! {self(), Res},
-            loop(Initial);
+                    {E1, _, An} = Found, 
+                    NewAn = runAnalytics(S1, An), 
+                    NewInitial = updateAnalytics(S1, NewAn, Initial),
+                    From ! {self(), {ok, E1}},
+                    loop(NewInitial)
+            end;
 
         {From, {stop}}-> From ! {self(), ok};
 
