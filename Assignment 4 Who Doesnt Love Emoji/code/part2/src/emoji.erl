@@ -246,7 +246,7 @@ loop(Initial) ->
                                         From ! {self(), ok},
                                         loop(NewInitial);
                                    LabelFound /= not_found ->
-                                        From ! {self(), {error, "The label " ++ Short ++ " doesnt exist"}},
+                                   		From ! {self(), {error, "The Label "++ Label ++" is already registered"}},
                                         loop(Initial)
                                 end
                     end;
