@@ -13,5 +13,5 @@
 test_all() ->
   ok.
 
-test_everything ->
+test_everything() ->
   test_all().
